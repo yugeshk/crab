@@ -5,212 +5,178 @@ from LogManager import LoggingManager
 
 
 class CrabParser(object):
-    CRAB_PROG = {"node_name" : "",
-        "input_vars" : {},
-        "output_vars" : {},
-        "local_vars": {},
-        "streams":{},
-        "asserts":{},
-        "s_prop":{},
-        "is_main": False
-        }
 
     def __init__(self):
+        self.CRAB_PROG = {"abs_domain" : "",
+                     "decl" : {},
+                     "basic_blocks" : {},
+                     "edges": {},
+        }
         return
 
-    def _decls(self, vars_type, l="I_O"):
-        io_list = []
-        local_dict = {}
-        if l != "I_O":
-            for all_local in vars_type.l_var:
-                for var in all_local[0]:
-                    local_dict.update({var:all_local[2]})
-            return local_dict
-        else:
-            for all_vars in vars_type:
-                for var in all_vars[0]:
-                    io_list.append((var,all_vars[2]))
-            return io_list
 
-    def _defs(self, streams):
-        streams_dict = {}
-        for st in streams:
-            st_defs= " ".join(x for x in st.rhs)
-            st_name= " ".join(x for x in st.lhs.vars)
-            streams_dict.update({st_name:st_defs})
-        return streams_dict
+    def _decl(self, decl):
+        for d in decl:
+            var = d[0]
+            typ = d[1]
+            decl =self.CRAB_PROG["decl"]
+            decl.update({d[0]:d[1]})
+        return
 
-    def _props(self, props):
-        props_dict = {}
-        i = 0
-        for p in props:
-            props_dict.update({i:(" ".join(x for x in p))})
-            i += 1
-        return props_dict
-
-    def _Outspecs(self, mSpec, sSpec):
-        spec_dict = {}
-        spec = []
-        if (sSpec and mSpec):
-         spec = (sSpec + mSpec)
-        elif (sSpec):
-         spec = sSpec
-        else:
-          spec = mSpec
-        req = []
-        en = []
-        ob = []
-        for sp in spec:
-          if sp[0]=="requires":
-            req.append(sp[1])
-            spec_dict.update({"requires": req})
-          elif sp[0]=="ensures":
-            en.append(sp[1])
-            spec_dict.update({"ensures": en})
-          elif sp[0]=="observer":
-            ob.append(sp[1])
-            spec_dict.update({"observer": ob})
-        return spec_dict
-
-    def _Inspecs(self, spec):
-        spec_dict = {}
-        inv = []
-        main = []
-        ob = []
-        for sp in spec:
-          if sp[0]=="invariant":
-            inv.append(sp[1])
-            spec_dict.update({"invariant": inv})
-          elif sp[0]=="main":
-            main.append(sp[1])
-            spec_dict.update({"main": main})
-          elif sp[0]=="observer":
-            ob.append(sp[1])
-            spec_dict.update({"observer": ob})
-          else:
-            spec_dict.update({sp[0]:[sp[1]]})
-        return spec_dict
+    def _basicBlocks(self, bbs):
+        bb_dict = dict()
+        for bb in bbs:
+            bb_name = bb.bb_name[0]
+            bb_instrs = bb.instrs
+            if bb.assignment:
+                assignment = dict()
+                for ass in bb.instrs:
+                    assignment.update({ass[0]:ass[1]})
+                bb_dict.update({bb_name:{"assignment":assignment}})
+        (self.CRAB_PROG["basic_blocks"]).update(bb_dict)
+        return
 
 
-    def _node(self, s,l,c):
-        NODES = {}
-        GLOB = {}
-        g_list = []
-        for g in c.globals:
-            if g[0] == "const":
-              g_list.append(g[1])
-              GLOB.update({"const":g_list})
-            else:
-              GLOB.update({g[0]:g[1]})
-        for node in c.nodes:
-            input_vars = self._decls(node.input_vars)
-            output_vars = self._decls(node.output_vars)
-            local_vars = self._decls(node.local_vars,"L") if node.local_vars else {}
-            streams = self._defs(node.defs.streams)
-            props = self._props(node.defs.props)
-            is_main = node.defs.main_node == "--%MAIN"
-            asserts = self._props(node.defs.asserts)
-            outSpecs = self._Outspecs(node.mOutSpec, node.sOutSpec)
-            inSpecs = self._Inspecs(node.defs.inSpec)
-            s_prop = self._props(node.defs.s_prop)
-            NODE  = {"node_name" : node.node_name,
-                  "input_vars" : input_vars,
-                  "output_vars" : output_vars,
-                  "local_vars": local_vars,
-                  "streams":streams,
-                  "asserts":asserts,
-                  "outSpecs":outSpecs,
-                  "s_prop": s_prop,
-                  "inSpecs":inSpecs}
-            NODES.update({node.node_name : NODE})
-        NODES.update({"glob":GLOB})
-        return NODES
+    def _crab_prog(self, s,l,c):
+
+        for g in c.abs_domain:
+            self.CRAB_PROG.update({"abs_domain": g})
+        try:
+            self._decl(c.decl)
+        except Exception as e:
+            print "Getting variable declartion"
+        try:
+            self._basicBlocks(c.bbs)
+        except Exception as e:
+            print e
+            print "Handling basic blocks"
+        for e in c.edges:
+            print e
+
+        # for node in c.nodes:
+        #     input_vars = self._decls(node.input_vars)
+        #     output_vars = self._decls(node.output_vars)
+        #     local_vars = self._decls(node.local_vars,"L") if node.local_vars else {}
+        #     streams = self._defs(node.defs.streams)
+        #     props = self._props(node.defs.props)
+        #     is_main = node.defs.main_node == "--%MAIN"
+        #     asserts = self._props(node.defs.asserts)
+        #     outSpecs = self._Outspecs(node.mOutSpec, node.sOutSpec)
+        #     inSpecs = self._Inspecs(node.defs.inSpec)
+        #     s_prop = self._props(node.defs.s_prop)
+        #     NODE  = {"node_name" : node.node_name,
+        #           "input_vars" : input_vars,
+        #           "output_vars" : output_vars,
+        #           "local_vars": local_vars,
+        #           "streams":streams,
+        #           "asserts":asserts,
+        #           "outSpecs":outSpecs,
+        #           "s_prop": s_prop,
+        #           "inSpecs":inSpecs}
+        #     NODES.update({node.node_name : NODE})
+        # NODES.update({"glob":GLOB})
+        return self.CRAB_PROG
 
     def _globals(self, s, l, c):
         print c
 
+
     COMMENTS = Group(Literal("-- ") + restOfLine).setResultsName("comments")
     a1 = printables.replace(";", " ")
     a2 = a1.replace(":", " ")
+    a2 = a2.replace("[", " ")
+    a2 = a2.replace("]", " ")
+    a2 = a2.replace("{", " ")
+    a2 = a2.replace("}", " ")
+    a2 = a2.replace("+", " ")
+    a2 = a2.replace("=", " ")
+    a2 = a2.replace("-", " ")
+    a2 = a2.replace("*", " ")
+    a2 = a2.replace("/", " ")
+    a2 = a2.replace(">", " ")
+    a2 = a2.replace("!", " ")
+    a2 = a2.replace("<", " ")
+    a2 = a2.replace("(", " ")
+    a2 = a2.replace(")", " ")
     ID = Word(alphanums + "_")
+    VARS = OneOrMore(ID | Word(a2))
+    NUM = Word('0123456789')
 
-    SUBRANGE = Literal("subrange") + Literal("[") + Word(nums) + Literal(",") + Word(nums) + Literal("]") + Literal("of") + Literal("int")
-    VARS = Group(OneOrMore(Word(alphanums+"_") + Optional(Literal(",")).suppress())).setResultsName("vars")
-    TYPES = Literal("int") | Literal("bool") | Literal("real") | Group(SUBRANGE)
-    ASSIGN = Group(VARS + Literal(":") + TYPES.setResultsName("type"))
-    ASSIGN2 = ZeroOrMore(Group(VARS + Literal(":") + TYPES.setResultsName("type") + Optional(Literal(";")).suppress()))
-    INPUT_VARS = Group(Literal("(").suppress() + ASSIGN2.setResultsName("assign") + Literal(")").suppress()).setResultsName("input_vars")
-    OUTPUT_VARS = Group(Literal("(").suppress() + ASSIGN2.setResultsName("assign") + Literal(")").suppress()).setResultsName("output_vars")
-    L_VAR = ASSIGN.setResultsName("assign") +  Literal(";").suppress()
-    L_VAR_COMMENTS = OneOrMore(L_VAR | COMMENTS.suppress())
-    LOCAL_VARS = Group(Literal("var") + L_VAR_COMMENTS.setResultsName("l_var")).setResultsName("local_vars")
+    #VARS = Group(ID)
+    TYPES = Literal("int") | Literal("real")
+    ASSIGN2 = ZeroOrMore(Group(VARS.setResultsName("var_name") + Literal(":").suppress() + TYPES.setResultsName("type") + Literal(";").suppress())).setResultsName("assign")
 
 
-    # RHS
-    I_VALUE = OneOrMore(Word(a2))
-    I_KEY = OneOrMore(ID | Word(a2))
-    KEY_VALUE = Group(I_KEY + Literal(":").suppress() + I_VALUE + Literal(";").suppress())
+    DECL_VARS = Literal("decl").suppress() + Literal(":").suppress() + Literal("[").suppress()\
+                      + ASSIGN2 +  Literal("]").suppress() + Literal(";").suppress()
 
-    REAL_EXPR = Word(a1);
+    EXP = Group(Literal("(").suppress()\
+                + NUM + Literal(",").suppress()\
+                + VARS + Literal(")").suppress()).setResultsName("")
+    LINEAR_EXP = OneOrMore(EXP).setResultsName("exp")
+    BOP = Literal("<") | Literal(">") | Literal("=")\
+          | Group(Literal("!=")) | Group(Literal(">="))\
+          | Group(Literal(">="))
 
-    RHS = (OneOrMore(REAL_EXPR)).setResultsName("real_expr")
+    LINEAR_CST = Group(LINEAR_EXP.setResultsName("cst") + BOP + NUM)
 
-    # Expressions
-    EX = (Group(RHS + Literal(";").suppress())).setResultsName("rhs")
-    EX_NAME = (Group(Optional(Literal("(")).suppress() + VARS + Optional(Literal(")")).suppress())).setResultsName("lhs")
-    EXPR= (Group(EX_NAME + Literal("=").suppress() + EX )).setResultsName("expr")
-    MULTI_EXPR = Forward()
-    MULTI_EXPR << (OneOrMore(EXPR + Optional(COMMENTS.suppress()))).setResultsName("mExpr")
-
-    PROPS = OneOrMore(ID | Word(a1))
-    S_PROPERTY = OneOrMore(Group(Literal("--!PROPERTY").suppress() + PROPS + Literal(";").suppress()))
-
-    ASSERT = OneOrMore(Word(a1))
-    ASSERTION = OneOrMore(Group(Literal("assert").suppress() + ASSERT + Literal(";").suppress()))
-
-
-    M_I_SPEC = OneOrMore(Literal("(*! ").suppress()\
-                              + KEY_VALUE + Literal(";").suppress()\
-                              + Literal("*)").suppress())
-    S_I_SPEC = Literal("--!").suppress() + KEY_VALUE
-
-    INSIDE_SPEC = OneOrMore(S_I_SPEC)
-
-    MAIN_NODE = Literal("--!MAIN")
-
-    EQ = MULTI_EXPR.setResultsName("streams")\
-        | S_PROPERTY.setResultsName("s_prop")\
-        | ASSERTION.setResultsName("asserts")\
-        | COMMENTS.suppress()\
-        | MAIN_NODE.setResultsName("main_node").suppress()\
-        | INSIDE_SPEC.setResultsName("inSpec")
+    ASSIGNMENT = Group(VARS + Literal(":=").suppress() + VARS + Literal(";").suppress())
+    ASSUME = Group(Literal("assume").suppress() + LINEAR_CST.setResultsName("const") + Literal(";").suppress())
+    ASSERT = Group(Literal("assert").suppress() + LINEAR_CST.setResultsName("const") + Literal(";").suppress())
+    HAVOC = Group(Literal("havoc").suppress() + VARS+ Literal(";").suppress())
+    ADD = Group(VARS + Literal("=").suppress() + VARS + Literal("+").suppress() + VARS + Literal(";").suppress())\
+          | Group(VARS + Literal("=").suppress() + VARS + Literal("+").suppress() + NUM+ Literal(";").suppress())
+    SUB = Group(VARS + Literal("=").suppress() + VARS + Literal("-").suppress() + VARS + Literal(";").suppress())\
+          | Group(VARS + Literal("=").suppress() + VARS + Literal("-").suppress() + NUM+ Literal(";").suppress())
+    MUL = Group(VARS + Literal("=").suppress() + VARS + Literal("*").suppress() + VARS + Literal(";").suppress())\
+          | Group(VARS + Literal("=").suppress() + VARS + Literal("*").suppress() + NUM+ Literal(";").suppress())
+    DIV = Group(VARS + Literal("=").suppress() + VARS + Literal("/").suppress() + VARS + Literal(";").suppress())\
+          | Group(VARS + Literal("=").suppress() + VARS + Literal("/").suppress() + NUM+ Literal(";").suppress())
 
 
-    EQUATIONS = (Group(ZeroOrMore(EQ))).setResultsName("defs")
+    INSTR = ASSIGNMENT.setResultsName("assignment")\
+            | ASSUME.setResultsName("assume")\
+            | ASSERT.setResultsName("assert")\
+            | ADD.setResultsName("add")\
+            | SUB.setResultsName("sub")\
+            | MUL.setResultsName("mul")\
+            | DIV.setResultsName("div")\
+            | HAVOC.setResultsName("havoc")
 
+
+    BB = Group(VARS.setResultsName("bb_name")\
+         + Literal("[").suppress()\
+         + ZeroOrMore(INSTR).setResultsName("instrs")\
+         + Literal("]").suppress()).setResultsName("bb")
+
+    BBS = Literal("bb").suppress() + Literal("{").suppress()\
+          + OneOrMore(BB)\
+          + Literal("}").suppress()
+
+    EDGE = Group(VARS.setResultsName("bb_name")\
+         + Group(Literal(">>") | Literal("<<>>").setResultsName("bi")).suppress()\
+         + VARS.setResultsName("bb_name")\
+         + Literal(";").suppress()).setResultsName("edge")
+
+    EDGES = Literal("link").suppress() + Literal("{").suppress()\
+            + OneOrMore(EDGE)\
+            + Literal("}").suppress()
 
     def _multiNode (self):
-        NODE = Group(Optional(self.SPEC)\
-                      + Literal("node") + self.ID.setResultsName("node_name") + self.INPUT_VARS + Literal("returns") + self.OUTPUT_VARS + Literal(";")\
-                      + Optional(self.LOCAL_VARS)\
-                      + Literal("let")\
-                      + self.EQUATIONS\
-                      + Literal("tel") + Optional(Literal(";") | Literal("."))
-                  )
-
 
         M_COMMENTS = nestedExpr("(*",")")
 
-        GLOBAL_DECL = Literal("abs_domain") + Literal(":") + Word(self.a1) + Literal(";").suppress()
+        ABS_DOMAIN = Literal("abs_domain").suppress() + Literal(":").suppress()\
+                     + Word(self.a1) + Literal(";").suppress()
+
 
         ALL_PROGRAM = Optional(ABS_DOMAIN).setResultsName("abs_domain")\
-                      + (OneOrMore((NODE).setResultsName("cprog")\
-                      | self.COMMENTS.suppress()\
-                      | M_COMMENTS.suppress())
-                      ).setResultsName("cprogs")\
+                      + Optional(self.DECL_VARS).setResultsName("decl")\
+                      + Optional(self.BBS).setResultsName("bbs")\
+                      + Optional(self.EDGES).setResultsName("edges")
 
         PROGRAM = Forward()
-        PROGRAM << (ALL_PROGRAM).setParseAction(lambda s, l, c: self._node(s, l, c))
+        PROGRAM << (ALL_PROGRAM).setParseAction(lambda s, l, c: self._crab_prog(s, l, c))
         return PROGRAM
 
     def parse(self, lustreFile):
@@ -234,8 +200,21 @@ class CrabParser(object):
             pp += n + " => " + str(k) + "\n\n"
         return pp
 
+test_0 = """
+abs_domain : interval;
+decl : [i:int; j:int; i:int; ];
+bb { helle[h:=k; teme:=hola;]
+     two[]
+     d [havoc b;]
+     a [assume (2,g) (3,g) <0;]
+     b [assert (3,h) != 0;]
+     c [v1 = v2 + v3; v1= v2 - v3; v1 = v2*v3; v1 = v2/v3;]
+}
+
+link { f>>j; a<<>>b;}
+"""
 test_1="""
-abs_domain: interval;
+abs_domain: [interval];
 decl: int i;
 bb: {
      entry[assign(i,0)];
@@ -252,8 +231,14 @@ edges: {
      }
 """
 
+test = """
+abs_domain : interval;
+decl : [h:int; k:int;];
+bb { bb1[h:=k;]
+}
+"""
 
 if __name__ == "__main__":
-  p = LParser()
-  ast = p.parse(test_1)
+  p = CrabParser()
+  ast = p.parse(test)
   print ast
