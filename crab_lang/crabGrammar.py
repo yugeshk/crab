@@ -28,11 +28,28 @@ class CrabParser(object):
         for bb in bbs:
             bb_name = bb.bb_name[0]
             bb_instrs = bb.instrs
+            assume_n = 1
+            assert_n = 1
             if bb.assignment:
                 assignment = dict()
+                print bb.instrs
                 for ass in bb.instrs:
+                    print ass
                     assignment.update({ass[0]:ass[1]})
                 bb_dict.update({bb_name:{"assignment":assignment}})
+            elif bb.assume:
+                assume = dict()
+                for ass in bb.instrs:
+                    lin_const = {"bop":bb.instrs.assume.cst.bop,
+                    "exp":bb.instrs.assume.cst.exp,
+                    "num":bb.instrs.assume.cst.num}
+                    assume.update({i:lin_const})
+                i+=1
+            elif bb.havoc:
+                havoc = {}
+                for ass in bb.instrs:
+                    havoc.update({ass[0]:ass[0]})
+                    bb_dict.update({bb_name:{"havoc":havoc}})
         (self.CRAB_PROG["basic_blocks"]).update(bb_dict)
         return
 
@@ -118,12 +135,12 @@ class CrabParser(object):
           | Group(Literal("!=")) | Group(Literal(">="))\
           | Group(Literal(">="))
 
-    LINEAR_CST = Group(LINEAR_EXP.setResultsName("cst") + BOP + NUM)
+    LINEAR_CST = Group(LINEAR_EXP.setResultsName("exp") + BOP.setResultsName("bop") + NUM.setResultsName("num"))
 
     ASSIGNMENT = Group(VARS + Literal(":=").suppress() + VARS + Literal(";").suppress())
-    ASSUME = Group(Literal("assume").suppress() + LINEAR_CST.setResultsName("const") + Literal(";").suppress())
-    ASSERT = Group(Literal("assert").suppress() + LINEAR_CST.setResultsName("const") + Literal(";").suppress())
-    HAVOC = Group(Literal("havoc").suppress() + VARS+ Literal(";").suppress())
+    ASSUME = Group(Literal("assume").suppress() + LINEAR_CST.setResultsName("cst") + Literal(";").suppress())
+    ASSERT = Group(Literal("assert").suppress() + LINEAR_CST.setResultsName("cst") + Literal(";").suppress())
+    HAVOC = Group(Literal("havoc").suppress() + VARS + Literal(";").suppress())
     ADD = Group(VARS + Literal("=").suppress() + VARS + Literal("+").suppress() + VARS + Literal(";").suppress())\
           | Group(VARS + Literal("=").suppress() + VARS + Literal("+").suppress() + NUM+ Literal(";").suppress())
     SUB = Group(VARS + Literal("=").suppress() + VARS + Literal("-").suppress() + VARS + Literal(";").suppress())\
@@ -205,7 +222,7 @@ abs_domain : interval;
 decl : [i:int; j:int; i:int; ];
 bb { helle[h:=k; teme:=hola;]
      two[]
-     d [havoc b;]
+     d [havoc b; havoc c;]
      a [assume (2,g) (3,g) <0;]
      b [assert (3,h) != 0;]
      c [v1 = v2 + v3; v1= v2 - v3; v1 = v2*v3; v1 = v2/v3;]
@@ -234,8 +251,9 @@ edges: {
 test = """
 abs_domain : interval;
 decl : [h:int; k:int;];
-bb { bb1[h:=k;]
-}
+bb {
+   bb1[h:=k;]
+   }
 """
 
 if __name__ == "__main__":
