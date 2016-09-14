@@ -26,6 +26,7 @@ if (CUSTOM_BOOST_ROOT)
 endif()
 
 option (ENABLE_TESTS "Enable tests" OFF)
+option (ENABLE_CFG_FROM_FILE "Enable crab cfg from files" OFF)
 option (USE_LDD   "Enable Ldd library" OFF)
 option (USE_APRON "Enable Apron library" OFF)
 option (USE_STATS "Enable statistics" ON)
@@ -65,13 +66,53 @@ if (NOT CMAKE_INSTALL_RPATH)
 endif ()
 
 set (Boost_USE_STATIC_LIBS ON)
-if (ENABLE_TESTS)
-  find_package (Boost 1.55.0 COMPONENTS program_options REQUIRED)
+
+if (ENABLE_CFG_FROM_FILE)
+   find_package (Boost 1.55.0 COMPONENTS program_options python system filesystem REQUIRED)
 else ()
-  find_package (Boost 1.55.0)
+   if (ENABLE_TESTS)
+      find_package (Boost 1.55.0 COMPONENTS program_options REQUIRED)
+   else ()
+      find_package (Boost 1.55.0)
+   endif ()
 endif ()
+
 if (Boost_FOUND)
   include_directories (${Boost_INCLUDE_DIRS})
+
+  if (ENABLE_CFG_FROM_FILE)
+     find_package(PythonLibs 2.7 REQUIRED)
+     include_directories (${PYTHON_INCLUDE_DIRS})
+     #message (STATUS "Include dirs of Python: " ${PYTHON_INCLUDE_DIRS})
+     #message (STATUS "Libs of Python: " ${PYTHON_LIBRARIES} )
+
+     ## XXX: I don't understant why but python still requires these libraries
+     find_package(Threads REQUIRED)
+     if (CMAKE_USE_PTHREADS_INIT)
+         set (PTHREAD_LIB ${CMAKE_THREAD_LIBS_INIT}) 
+     endif ()
+     mark_as_advanced(PTHREAD_LIB)
+
+     find_library(Z_LIB NAMES z)
+     if (NOT Z_LIB)
+        set(Z_LIB "")
+     endif()
+     mark_as_advanced(Z_LIB)
+
+     find_library(DL_LIB NAMES dl)
+     if (NOT DL_LIB)
+        set(DL_LIB "")
+     endif()
+     mark_as_advanced(DL_LIB)
+
+     find_library(UTIL_LIB NAMES util)
+     if (NOT UTIL_LIB)
+        set(UTIL_LIB "")
+     endif()
+     mark_as_advanced(UTIL_LIB)
+     
+     set (PYTHON_DEPS "-lz -ldl -lutil -lpthread")
+  endif ()
 endif ()
 
 find_package(GMP REQUIRED)
@@ -257,10 +298,15 @@ if (ENABLE_TESTS)
    add_subdirectory(tests)
 endif ()
 
+if (ENABLE_CFG_FROM_FILE)
+  add_subdirectory (crab_lang)
+  add_subdirectory (tools)
+endif ()
+
 install(DIRECTORY include/ DESTINATION include)
 
 # Licenses
-install(FILES Crab_LICENSE.txt DESTINATION shared/doc)       
+##install(FILES Crab_LICENSE.txt DESTINATION shared/doc)       
 
 install(FILES Ikos_LICENSE.pdf DESTINATION shared/doc)       
 
