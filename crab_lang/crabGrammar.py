@@ -111,7 +111,7 @@ class CrabParser(object):
     a2 = a2.replace(")", " ")
     ID = Word(alphanums + "_")
     VARS = OneOrMore(ID | Word(a2))
-    NUM = Word('0123456789')
+    NUM = Word('-0123456789')
 
     #VARS = Group(ID)
     TYPES = Literal("int") | Literal("real")
@@ -122,9 +122,11 @@ class CrabParser(object):
                       + ASSIGN2 +  Literal("]").suppress() + Literal(";").suppress()
 
     EXP = Group(Literal("(").suppress()\
-                + NUM + Literal(",").suppress()\
+                + NUM + Literal("*").suppress()\
                 + VARS + Literal(")").suppress()).setResultsName("")
-    LINEAR_EXP = OneOrMore(EXP).setResultsName("exp")
+    LINEAR_EXP = OneOrMore(
+        Group(EXP + Literal("+").suppress() + EXP)
+        | EXP).setResultsName("exp")
     BOP = Literal("<") | Literal(">") | Literal("=")\
           | Group(Literal("!=")) | Group(Literal(">="))\
           | Group(Literal(">="))
@@ -212,6 +214,7 @@ class CrabParser(object):
             bb = ""
             if n == "basic_blocks":
                 for bb_name, bb_expr in k.iteritems():
+                    
                     bb += "\t" + bb_name + " => " + str(bb_expr) + "\n"
                 pp += n + " => \n " + bb + "\n"
             else:
@@ -253,10 +256,10 @@ test = """
 abs_domain : interval;
 decl : [h:int; k:int;];
 bb {
-   bb1[h:=k; u:=k; h:=v; assert (3,h) (4,h)!=0;]
+   bb1[h:=k; u:=k; h:=v; assert (-3*h)+(4*h)!=0;]
    bb2[havoc h;]
    bb3[]
-   bb4[assume (2,h)=0;]
+   bb4[assume (2*h)=0;]
    bb5 [v1 = v2 + v3; v1 = v2 - v4;]
    }
 link {bb1 >> bb2; bb2 >> bb3; bb4>>bb5;}
