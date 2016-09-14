@@ -163,7 +163,14 @@ the entry of each basic block, should be something like this:
 
 # Example reading the CFG from a file#
 
-[Temporary hack]: add manually  into `PYTHONPATH` the path to `tools/crabParser.py`.
+1. Add option `-DENABLE_CFG_FROM_FILE` to cmake. That is, when cmake
+   installs crab type:
+
+    mkdir build && cd build
+    cmake -DENABLE_CFG_FROM_FILE=ON -DCMAKE_INSTALL_PREFIX=run ../
+    cmake --build . --target install 
+
+2. Add manually  into `PYTHONPATH` the path to `tools/crabParser.py` (temporary hack).
 
 Then, type `crab filename` where filename looks like:
 
