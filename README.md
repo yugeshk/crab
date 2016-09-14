@@ -33,7 +33,7 @@ Open Static Analyzers) developed by NASA Ames Research Center.
 
 # Crab architecture #
 
-![Crab Architecture](https://github.com/caballa/crab/blob/master/Crab_arch.jpg?raw=true "Crab Architecture")
+![Crab Architecture](https://github.com/caballa/crab/blob/crab_language/Crab_arch.jpg?raw=true "Crab Architecture")
 
 # Installation and Usage #
 
@@ -163,7 +163,25 @@ the entry of each basic block, should be something like this:
 
 # Example reading the CFG from a file#
 
-TODO
+[Temporary hack]: add manually  into `PYTHONPATH` the path to `tools/crabParser.py`.
+
+Then, type `crab filename` where filename looks like:
+
+    abs_domain : zones;
+    decl : [x:int; y:int;];
+    blocks {
+      bb1[x:=0; y:=0;]
+      bb2[]
+      bb3[assume (1*x)<10;x := x + 1; y := y + 1;]
+      bb4[assume (1*x)>=10;]
+    }
+    edges {bb1 ->bb2; bb2 -> bb3; bb3-> bb2; bb2->bb4;}
+
+TODO:
+
+- describe `filename` although it is quite self-explanatory.
+- describe grammar
+
 
 # Integrating Crab in other verification tools #
 
