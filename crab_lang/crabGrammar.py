@@ -1,6 +1,6 @@
 from pyparsing import *
 from LogManager import LoggingManager
-
+import pprint
 
 
 
@@ -12,6 +12,7 @@ class CrabParser(object):
                      "basic_blocks" : {},
                      "edges": {},
         }
+    
         return
 
 
@@ -27,35 +28,48 @@ class CrabParser(object):
         bb_dict = dict()
         for bb in bbs:
             bb_name = bb.bb_name[0]
-            bb_instrs = bb.instrs
-            assume_n = 1
-            assert_n = 1
-            if bb.assignment:
-                assignment = dict()
-                print bb.instrs
-                for ass in bb.instrs:
-                    print ass
-                    assignment.update({ass[0]:ass[1]})
-                bb_dict.update({bb_name:{"assignment":assignment}})
-            elif bb.assume:
-                assume = dict()
-                for ass in bb.instrs:
-                    lin_const = {"bop":bb.instrs.assume.cst.bop,
-                    "exp":bb.instrs.assume.cst.exp,
-                    "num":bb.instrs.assume.cst.num}
-                    assume.update({i:lin_const})
-                i+=1
-            elif bb.havoc:
-                havoc = {}
-                for ass in bb.instrs:
-                    havoc.update({ass[0]:ass[0]})
-                    bb_dict.update({bb_name:{"havoc":havoc}})
+            bb_instr = bb.instr
+            bb_dict.update({bb_name:{}})
+            inst_n = 0
+            instr_dict = dict()
+            for inst in bb_instr:
+                if inst.getName() is "assignment":
+                    instr_dict.update({inst_n:{"assignment":inst.asList()}})
+                elif inst.getName() is "assume":
+                    assume_dict = inst.asDict()['cst']
+                    if type(assume_dict['bop']) is list:
+                        assume_dict.update({'bop':(assume_dict['bop'])[0]})
+                    instr_dict.update({inst_n:{"assume":assume_dict}})
+                elif inst.getName() is "assert":
+                    ass_dict = inst.asDict()['cst']
+                    if type(ass_dict['bop']) is list:
+                        ass_dict.update({'bop':(ass_dict['bop'])[0]})
+                    instr_dict.update({inst_n:{"assert":ass_dict}})
+                elif inst.getName() in ["add", "sub", "mul", "div"]:
+                    instr_dict.update({inst_n:{str(inst.getName()):inst.asList()}})
+                elif inst.getName() is "havoc":
+                    instr_dict.update({inst_n:{"havoc":inst.asList()}})
+                else:
+                    assert False, 'unknown instruction'
+                inst_n +=1
+            bb_dict.update({bb_name:instr_dict})
         (self.CRAB_PROG["basic_blocks"]).update(bb_dict)
         return
 
 
+    def _edges(self, edges):
+        out = dict()
+        n = 0
+        for edge in edges:
+            edge = edge.asList()
+            out.update({n:edge})
+            n+=1
+        (self.CRAB_PROG["edges"]).update(out)
+        return
+        
+            
+        
     def _crab_prog(self, s,l,c):
-
         for g in c.abs_domain:
             self.CRAB_PROG.update({"abs_domain": g})
         try:
@@ -67,31 +81,11 @@ class CrabParser(object):
         except Exception as e:
             print e
             print "Handling basic blocks"
-        for e in c.edges:
+        try:
+            self._edges(c.edges)
+        except Exception as e:
             print e
-
-        # for node in c.nodes:
-        #     input_vars = self._decls(node.input_vars)
-        #     output_vars = self._decls(node.output_vars)
-        #     local_vars = self._decls(node.local_vars,"L") if node.local_vars else {}
-        #     streams = self._defs(node.defs.streams)
-        #     props = self._props(node.defs.props)
-        #     is_main = node.defs.main_node == "--%MAIN"
-        #     asserts = self._props(node.defs.asserts)
-        #     outSpecs = self._Outspecs(node.mOutSpec, node.sOutSpec)
-        #     inSpecs = self._Inspecs(node.defs.inSpec)
-        #     s_prop = self._props(node.defs.s_prop)
-        #     NODE  = {"node_name" : node.node_name,
-        #           "input_vars" : input_vars,
-        #           "output_vars" : output_vars,
-        #           "local_vars": local_vars,
-        #           "streams":streams,
-        #           "asserts":asserts,
-        #           "outSpecs":outSpecs,
-        #           "s_prop": s_prop,
-        #           "inSpecs":inSpecs}
-        #     NODES.update({node.node_name : NODE})
-        # NODES.update({"glob":GLOB})
+            print "Handling edges"
         return self.CRAB_PROG
 
     def _globals(self, s, l, c):
@@ -137,7 +131,8 @@ class CrabParser(object):
 
     LINEAR_CST = Group(LINEAR_EXP.setResultsName("exp") + BOP.setResultsName("bop") + NUM.setResultsName("num"))
 
-    ASSIGNMENT = Group(VARS + Literal(":=").suppress() + VARS + Literal(";").suppress())
+    ASSIGNMENT = Group(VARS.setResultsName("lhs") + Literal(":=").suppress()\
+                       + VARS.setResultsName("rhs") + Literal(";").suppress())
     ASSUME = Group(Literal("assume").suppress() + LINEAR_CST.setResultsName("cst") + Literal(";").suppress())
     ASSERT = Group(Literal("assert").suppress() + LINEAR_CST.setResultsName("cst") + Literal(";").suppress())
     HAVOC = Group(Literal("havoc").suppress() + VARS + Literal(";").suppress())
@@ -163,20 +158,20 @@ class CrabParser(object):
 
     BB = Group(VARS.setResultsName("bb_name")\
          + Literal("[").suppress()\
-         + ZeroOrMore(INSTR).setResultsName("instrs")\
-         + Literal("]").suppress()).setResultsName("bb")
+         + Group(ZeroOrMore(INSTR)).setResultsName("instr")\
+         + Literal("]").suppress())
 
     BBS = Literal("bb").suppress() + Literal("{").suppress()\
-          + OneOrMore(BB)\
+          + OneOrMore(BB).setResultsName("bblock")\
           + Literal("}").suppress()
 
-    EDGE = Group(VARS.setResultsName("bb_name")\
-         + Group(Literal(">>") | Literal("<<>>").setResultsName("bi")).suppress()\
-         + VARS.setResultsName("bb_name")\
-         + Literal(";").suppress()).setResultsName("edge")
+    EDGE = Group(VARS.setResultsName("bb_left")\
+         + Group(Literal(">>")).suppress()\
+         + VARS.setResultsName("bb_right")\
+         + Literal(";").suppress())
 
     EDGES = Literal("link").suppress() + Literal("{").suppress()\
-            + OneOrMore(EDGE)\
+            + OneOrMore(EDGE).setResultsName("edge")\
             + Literal("}").suppress()
 
     def _multiNode (self):
@@ -214,7 +209,13 @@ class CrabParser(object):
     def ppAST(self, ast):
         pp = "\n"
         for n,k in ast.iteritems():
-            pp += n + " => " + str(k) + "\n\n"
+            bb = ""
+            if n == "basic_blocks":
+                for bb_name, bb_expr in k.iteritems():
+                    bb += "\t" + bb_name + " => " + str(bb_expr) + "\n"
+                pp += n + " => \n " + bb + "\n"
+            else:
+                pp += n + " => " + str(k) + "\n\n"
         return pp
 
 test_0 = """
@@ -252,11 +253,16 @@ test = """
 abs_domain : interval;
 decl : [h:int; k:int;];
 bb {
-   bb1[h:=k;]
+   bb1[h:=k; u:=k; h:=v; assert (3,h) (4,h)!=0;]
+   bb2[havoc h;]
+   bb3[]
+   bb4[assume (2,h)=0;]
+   bb5 [v1 = v2 + v3; v1 = v2 - v4;]
    }
+link {bb1 >> bb2; bb2 >> bb3; bb4>>bb5;}
 """
 
 if __name__ == "__main__":
   p = CrabParser()
   ast = p.parse(test)
-  print ast
+  print p.ppAST(ast)
