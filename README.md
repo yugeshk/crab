@@ -69,7 +69,7 @@ If you want to use the BOXES domain then add `-DUSE_LDD=ON` option.
 
 If you want to use the Apron library domains then add `-DUSE_APRON=ON` option.
 
-# Example #
+# Example using C++ API#
 
 Assume we want to perform static analysis on the following C-like
 program:
@@ -160,6 +160,10 @@ the entry of each basic block, should be something like this:
     bb1_f={i -> [0, 100], x -> [1, +oo], y -> [0, 100], y-i<=0, y-x<=0, i-x<=0, i-y<=0}
     bb2={i -> [0, 99], x -> [1, +oo], y -> [0, 99], y-i<=0, y-x<=0, i-x<=0, i-y<=0}
 	ret={i -> [100, 100], x -> [100, +oo], y -> [100, 100], y-i<=0, y-x<=0, i-x<=0, i-y<=0}
+
+# Example reading the CFG from a file#
+
+TODO
 
 # Integrating Crab in other verification tools #
 
