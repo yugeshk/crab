@@ -163,7 +163,14 @@ the entry of each basic block, should be something like this:
 
 # Example reading the CFG from a file#
 
-1. Add option `-DENABLE_CFG_FROM_FILE` to cmake. That is, when cmake
+Crab can also communicate with other tools via files without using the
+C++ API. This is specially useful with the client tool is written, for
+instance, in Java, avoiding writing an JNI interface. The client tool
+only needs to write the CFG into a file following the grammar
+described below. Currently, this grammar is a subset of the language
+supported by the C++ API.
+
+1. Add option `-DENABLE_CFG_FROM_FILE=ON` to cmake. That is, when cmake
    installs crab type:
 
         mkdir build && cd build
@@ -172,7 +179,8 @@ the entry of each basic block, should be something like this:
 
 2. Add manually  into `PYTHONPATH` the path to `tools/crabParser.py` (temporary hack).
 
-Then, type `crab filename` where filename looks like:
+Steps 1 and 2 should be performned only once. Then, type `crab
+filename` where `filename` looks like:
 
     abs_domain : zones;
     decl : [x:int; y:int;];
@@ -184,11 +192,32 @@ Then, type `crab filename` where filename looks like:
     }
     edges {bb1 ->bb2; bb2 -> bb3; bb3-> bb2; bb2->bb4;}
 
-TODO:
+This is the supported grammar (note only linear integer expressions without functions):
 
-- describe `filename` although it is quite self-explanatory.
-- describe grammar
+    DOMAIN_DECL VARS_DECLS BLOCKS EDGES
+	
+	DOMAIN_DECL := 'abs_domain' ':' DOMAINS ';'
+	DOMAINS := 'intervals | 'zones' | 'octagons' | 'polyhedra'
 
+    VARS_DECLS := 'decl' ':' '[' VAR_DECL*  '];'
+	VAR_DECL := ID ':' TYPE ';'
+	TYPE = int
+	
+	BLOCKS := 'blocks' '{' BLOCK* '}'
+	BLOCK :=  ID '[' STATMENT* ']'
+	STATEMENT := ARITH | ASSIGN | ASSERT | ASSUME | HAVOC
+	A_OP := + | - | * | /
+	ARITH := ID ':=' ID  A_OP ID ';' | ID ':=' ID  A_OP NUM ';' 
+	ASSIGN := ID ':=' ID ';'
+	HAVOC := 'havoc' ID ';'
+	ASSERT := LIN_CONSTRAINT
+	ASSUME := LIN_CONSTRAINT
+	B_OP := > | < | = | != | >= | <=
+    LIN_CONSTRAINT := LIN_EXPRESION B_OP NUM
+	LIN_EXPRESSION := '(' NUM * ID ')' | LIN_EXPRESSION + LIN_EXPRESSION	
+
+	EDGES := 'edges' '{' EDGE* '}'
+	EDGE := ID '->' ID ';'	
 
 # Integrating Crab in other verification tools #
 
