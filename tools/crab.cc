@@ -17,6 +17,8 @@
 //#include <crab/domains/combined_domains.hpp>                      
 
 #include <boost/python.hpp>
+#include <boost/python/stl_iterator.hpp>
+
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 
@@ -96,7 +98,7 @@ struct crabOpts
   void write (std::ostream& o) const 
   {
     o << "Read user options\n";
-    o << "\tFilename=" << filename << (filename == "" ? "\"\"" : filename) << "\n";
+    o << "\tFilename=" << (filename == "" ? "\"\"" : filename) << "\n";
     o << "\tEnabled stats=" << (stats_enabled? "yes" : "not") << "\n";
     o << "\tWidening=" << widening << "\n";
     o << "\tNarrowing=" << narrowing << "\n";
@@ -106,12 +108,36 @@ struct crabOpts
 
 enum abs_domain_t { INTERVALS, ZONES, OCTAGONS, POLYHEDRA};
 
-// A class that builds a CFG from a file
+// Generic class that builds a CFG from a file.
+// The file must contain at least two things:
+// - a CFG in some format (custom, XML, json, etc)
+// - the abstract domain to be used for analyzing the CFG
 class CfgBuilder {
+
+ protected:
 
   crab::cfg_impl::variable_factory_t &m_vfac;  
   crab::cfg_impl::cfg_t* m_cfg;
   abs_domain_t m_abs_domain;
+
+  CfgBuilder (crab::cfg_impl::variable_factory_t &vfac)
+      : m_vfac (vfac), m_cfg(nullptr), m_abs_domain (INTERVALS) { }
+
+ public:
+
+  // Name of the file that contains the CFG
+  virtual void run (std::string filename) = 0;
+
+  crab::cfg_impl::cfg_t* get_cfg () { return m_cfg;}
+  abs_domain_t get_abs_dom () const { return m_abs_domain;}
+};
+
+
+// A class that builds a CFG using a python parser
+class PyCfgBuilder: public CfgBuilder {
+
+  typedef crab::cfg_impl::cfg_t cfg_t;
+  typedef cfg_t::basic_block_t basic_block_t;
 
   // z_var mk_z_var (boost::python::object py_var) 
   // { // TODO 
@@ -128,28 +154,128 @@ class CfgBuilder {
   // z_lin_cst_t mk_z_lin_cst (boost::python::object py_lin_cst) 
   // { // TODO 
   // }
-    
-  // basic_block_t& mk_basic_block (boost::python::object py_bb) 
-  // { // TODO
+
+  // void add_assign (basic_block_t &bb, boost::python::object py_assign) 
+  // { // TODO 
   // }
 
-  // void mk_edge (boost::python::object py_edge) 
-  // { // TODO
+  // void add_assume (basic_block_t &bb, boost::python::object py_assume) 
+  // { // TODO 
   // }
+
+  // void add_assert (basic_block_t &bb, boost::python::object py_assert) 
+  // { // TODO 
+  // }
+
+  // void add_havoc (basic_block_t &bb, boost::python::object py_havoc) 
+  // { // TODO 
+  // }
+
+  // void add_add (basic_block_t &bb, boost::python::object py_add) 
+  // { // TODO 
+  // }
+
+  // void add_sub (basic_block_t &bb, boost::python::object py_sub) 
+  // { // TODO 
+  // }
+
+  // void add_mul (basic_block_t &bb, boost::python::object py_mul) 
+  // { // TODO 
+  // }
+
+  // void adddiv (basic_block_t &bb, boost::python::object pydiv) 
+  // { // TODO 
+  // }
+    
+
 
  public:
 
-  CfgBuilder (crab::cfg_impl::variable_factory_t &vfac)
-      : m_vfac (vfac), m_cfg(nullptr), m_abs_domain (INTERVALS) { }
+  PyCfgBuilder (crab::cfg_impl::variable_factory_t &vfac)
+      : CfgBuilder (vfac) { }
 
-  void run (boost::python::object py_cfg) 
+  void run (std::string filename) 
   {
-    // TODO
+    namespace py = boost::python;
+    try {
+      Py_Initialize();
+      // insert the current working directory into the python path so module search 
+      // can take advantage. This must happen after python has been initiialized.
+      boost::filesystem::path workingDir = boost::filesystem::absolute("./").normalize();
+      PyObject* sysPath = PySys_GetObject((char*) "path");
+      PyList_Insert(sysPath, 0, PyString_FromString(workingDir.string().c_str()));
+      
+      // load the main namespace  
+      py::object main_module = py::import("__main__");
+      // load the dictionary for the namespace        
+      py::object main_namespace = main_module.attr("__dict__");
+      // import the crabParser module into the namespace    
+      py::exec("import crabParser", main_namespace); 
+      // create the locally-held CrabParser object
+      py::object parser  = py::eval("crabParser.CrabParser()", main_namespace);  
+
+      std::ifstream ifs(filename);
+      if (ifs)
+      {
+        std::string content( (std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
+        parser.attr("parse")(content);
+
+        // Get abstract domain
+        std::string abs_dom = py::extract<std::string>(parser.attr("getAbsDom")());
+        if (abs_dom == "intervals") {
+          m_abs_domain = INTERVALS;
+        } else if (abs_dom == "zones") {
+          m_abs_domain = ZONES;
+        } else if (abs_dom == "octagons") {
+          m_abs_domain = OCTAGONS;          
+        } else if (abs_dom == "polyhedra") {
+          m_abs_domain = POLYHEDRA;
+        } else {
+          CRAB_ERROR ("Abstract domain " + abs_dom + " not recognized.\nTry intervals, zones, octagons or polyhedra");
+        }
+
+        // Get blocks
+        py::object bbs = parser.attr("getBasicBlocks")();
+        std::vector<std::string> bb_names;
+        py::stl_input_iterator< py::object > bit(bbs), bet;
+        for(; bit != bet; ++bit) {
+          std::string bb_name = py::extract<std::string>(*bit);
+          bb_names.push_back (bb_name);
+        }
+
+        if (bb_names.empty ())  {
+          CRAB_WARN ("program is empty!\n");
+          return; 
+        }
+        
+        // Create CFG and set the entry block
+        // XXX: We need to know the entry block of the CFG
+        // For now, we assume the first block is the entry!
+        this->m_cfg = new cfg_t(bb_names[0]);
+        // Add blocks
+        for (auto bb_name: bb_names) {
+          /*auto &bb =*/ this->m_cfg->insert (bb_name);
+          // TODO: Add instructions in bb
+        }
+
+        // Add edges        
+        py::object edges = parser.attr("getEdges")();
+        py::stl_input_iterator< py::object > eit(edges), eet;
+        for(; eit != eet; ++eit) {
+          py::object tuple = *eit;
+          std::string src_str = py::extract<std::string>(tuple[0]);
+          std::string dst_str = py::extract<std::string>(tuple[1]);
+          auto &src = m_cfg->get_node (src_str);
+          auto &dest = m_cfg->get_node (dst_str);
+          src >> dest;
+        }
+      }
+      else 
+        CRAB_ERROR ("File " + filename + " not found\n");
+    } catch (py::error_already_set ) {
+      PyErr_Print();
+    }
   }
-
-  crab::cfg_impl::cfg_t* get_cfg () { return m_cfg;}
-
-  abs_domain_t get_abs_dom () const { return m_abs_domain;}
 };
 
 // A class that call Crab to infer invariants from a CFG
@@ -171,7 +297,7 @@ class Crab {
   {
     if (!m_cfg) 
     {
-      crab::outs () << "No Cfg found\n";
+      crab::outs () << "Crab: no Cfg found\n";
       return;
     }
 
@@ -215,7 +341,7 @@ static int crab_options (int argc, char**argv, crabOpts &copts)
   po.add_options()                                                                                    
       ("log",  boost::program_options::value<std::vector<string> >(), "Enable specified log level");  
   po.add_options()
-      ("input-file", boost::program_options::value<string>(), "input file") ;
+      ("input-file", boost::program_options::value<std::string>(), "input file") ;
   po.add_options()                                                                                    
       ("widening-delay",boost::program_options::value<unsigned>(&widening), "Max number of iterations until performing widening");                  
   po.add_options()                                                                                    
@@ -227,7 +353,7 @@ static int crab_options (int argc, char**argv, crabOpts &copts)
   cmmdline_options.add(po);                                                                           
   boost::program_options::variables_map vm;                                                           
   boost::program_options::positional_options_description p;                                           
-  p.add("input-file", 1);
+  p.add("input-file", -1);
   boost::program_options::store(boost::program_options::command_line_parser(argc, argv).              
             options(cmmdline_options).                                                                
             positional(p).                                                                            
@@ -241,7 +367,8 @@ static int crab_options (int argc, char**argv, crabOpts &copts)
   }
 
   if (vm.count("input-file")) {
-    copts.filename = vm ["input-file"].as<std::string>();
+    boost::filesystem::path abspath = boost::filesystem::absolute(vm ["input-file"].as<std::string>());
+    copts.filename = abspath.string();
   }
 
   if (vm.count("log")) {                                                                              
@@ -267,52 +394,14 @@ static int crab_options (int argc, char**argv, crabOpts &copts)
 
 int main (int argc, char**argv)
 {
-  namespace py = boost::python;
-
   crabOpts copts; 
   if (crab_options (argc, argv, copts) > 0) {
-    copts.write (std::cout); // for debugging
-
+    //copts.write (std::cout); // for debugging
     crab::cfg_impl::variable_factory_t vfac;
-    CfgBuilder B (vfac);
-    try {
-      Py_Initialize();
-      // insert the current working directory into the python path so module search 
-      // can take advantage. This must happen after python has been initiialized.
-      boost::filesystem::path workingDir = boost::filesystem::absolute("./").normalize();
-      PyObject* sysPath = PySys_GetObject((char*) "path");
-      PyList_Insert(sysPath, 0, PyString_FromString(workingDir.string().c_str()));
-      
-      // load the main namespace  
-      py::object main_module = py::import("__main__");
-      // load the dictionary for the namespace        
-      py::object main_namespace = main_module.attr("__dict__");
-      // import the crabGrammar module into the namespace    
-      py::exec("import crabGrammar", main_namespace); 
-      // create the locally-held CrabParser object
-      py::object parser  = py::eval("crabGrammar.CrabParser()", main_namespace);  
-
-      std::ifstream ifs(copts.filename);
-      if (ifs)
-      {
-        // std::string content( (std::istreambuf_iterator<char>(ifs)),
-        //                      (std::istreambuf_iterator<char>()));
-        // py::object ast = parser.attr("parse")("abs_domain : interval;decl : [h:int; k:int;];bb { bb1[] }");
-        // py::object ast = parser.attr("parse")(content);
-        // B.run (ast);
-      }
-      else 
-      {
-        std::cerr << "File " << copts.filename << " not found\n";
-        return 0;
-      }
-      
-      
-    } catch (py::error_already_set ) {
-      PyErr_Print();
-    }
-
+    PyCfgBuilder B (vfac);
+    B.run (copts.filename);
     Crab crab_tool (B.get_cfg (), vfac, copts);
+    crab::outs () << *(B.get_cfg ()) << "\n";
     switch (B.get_abs_dom ())
     {
       case ZONES:     crab_tool.run<crab::domain_impl::zones_domain_t> (); break;

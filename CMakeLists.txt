@@ -299,7 +299,6 @@ if (ENABLE_TESTS)
 endif ()
 
 if (ENABLE_CFG_FROM_FILE)
-  add_subdirectory (crab_lang)
   add_subdirectory (tools)
 endif ()
 
