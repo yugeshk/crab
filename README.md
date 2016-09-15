@@ -163,12 +163,13 @@ the entry of each basic block, should be something like this:
 
 # Example reading the CFG from a file#
 
-Crab can also communicate with other tools via files without using the
-C++ API. This is specially useful with the client tool is written, for
-instance, in Java, avoiding writing an JNI interface. The client tool
-only needs to write the CFG into a file following the grammar
-described below. Currently, this grammar is a subset of the language
-supported by the C++ API.
+Crab can also communicate with other tools via files. This is useful
+with the client tool is written in a language different from C++ and
+thus, the C++ API cannot be used directly.
+
+The client tool only needs to write the CFG into a file following the
+grammar described below. Currently, this grammar is a subset of the
+language supported by the C++ API.
 
 1. Add option `-DENABLE_CFG_FROM_FILE=ON` to cmake. That is, when cmake
    installs crab type:
@@ -187,13 +188,14 @@ filename` where `filename` looks like:
     blocks {
       bb1[x:=0; y:=0;]
       bb2[]
-      bb3[assume (1*x)<10;x := x + 1; y := y + 1;]
-      bb4[assume (1*x)>=10;]
+      bb3[assume((1*x)<10); x := x + 1; y := y + 1;]
+      bb4[assume((1*x)>=10);]
     }
     edges {bb1 ->bb2; bb2 -> bb3; bb3-> bb2; bb2->bb4;}
 
 This is the supported grammar (start symbol `P`). Note only linear
-integer expressions without functions:
+integer expressions without functions. Expressions like `EDGE*`
+represents zero or more repetitions of `EDGE`:
 
     P := DOMAIN_DECL VARS_DECLS BLOCKS EDGES
 	
@@ -207,15 +209,15 @@ integer expressions without functions:
 	BLOCKS := 'blocks' '{' BLOCK* '}'
 	BLOCK :=  ID '[' STATEMENT* ']'
 	STATEMENT := ARITH | ASSIGN | ASSERT | ASSUME | HAVOC
-	A_OP := + | - | * | /
+	A_OP := '+' | '-' | '*' | '/'
 	ARITH := ID ':=' ID  A_OP ID ';' | ID ':=' ID  A_OP NUM ';' 
-	ASSIGN := ID ':=' ID ';'
-	HAVOC := 'havoc' ID ';'
+	ASSIGN := ID ':=' ID ';' | ID ':=' NUM ';'
+	HAVOC := 'havoc' '(' ID ')' ';'
 	ASSERT := 'assert' '(' LIN_CONSTRAINT ')' ';'
 	ASSUME := 'assume' '(' LIN_CONSTRAINT ')' ';'
-	B_OP := > | < | = | != | >= | <=
+	B_OP := '>' | '<' | '=' | '!=' | '>=' | '<='
     LIN_CONSTRAINT := LIN_EXPRESION B_OP NUM
-	LIN_EXPRESSION := '(' NUM * ID ')' | LIN_EXPRESSION + LIN_EXPRESSION	
+	LIN_EXPRESSION := '(' NUM '*' ID ')' | NUM | LIN_EXPRESSION '+' LIN_EXPRESSION	
 
 	EDGES := 'edges' '{' EDGE* '}'
 	EDGE := ID '->' ID ';'	

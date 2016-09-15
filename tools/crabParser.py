@@ -190,9 +190,9 @@ class CrabParser(object):
 
     ASSIGNMENT = Group(VARS.setResultsName("lhs") + Literal(":=").suppress()\
                        + VARS.setResultsName("rhs") + Literal(";").suppress())
-    ASSUME = Group(Literal("assume").suppress() + LINEAR_CST.setResultsName("cst") + Literal(";").suppress())
-    ASSERT = Group(Literal("assert").suppress() + LINEAR_CST.setResultsName("cst") + Literal(";").suppress())
-    HAVOC = Group(Literal("havoc").suppress() + VARS + Literal(";").suppress())
+    ASSUME = Group(Literal("assume").suppress() + Literal("(").suppress() + LINEAR_CST.setResultsName("cst") + Literal(")").suppress() + Literal(";").suppress())
+    ASSERT = Group(Literal("assert").suppress() + Literal("(").suppress() + LINEAR_CST.setResultsName("cst") + Literal(")").suppress() + Literal(";").suppress())
+    HAVOC = Group(Literal("havoc").suppress() + Literal("(").suppress() + VARS + Literal(")").suppress() + Literal(";").suppress())
     ADD = Group(VARS + Literal(":=").suppress() + VARS + Literal("+").suppress() + VARS + Literal(";").suppress())\
           | Group(VARS + Literal(":=").suppress() + VARS + Literal("+").suppress() + NUM+ Literal(";").suppress())
     SUB = Group(VARS + Literal(":=").suppress() + VARS + Literal("-").suppress() + VARS + Literal(";").suppress())\
@@ -407,9 +407,9 @@ abs_domain : interval;
 decl : [i:int; j:int; i:int; ];
 blocks { helle[h:=k; teme:=hola;]
      two[]
-     d [havoc b; havoc c;]
-     a [assume (2 *g) + (3 * g) <0;]
-     b [assert (3 *h) != 0;]
+     d [havoc (b); havoc (c);]
+     a [assume ((2 *g) + (3 * g) <0);]
+     b [assert ((3 *h) != 0);]
      c [v1 := v2 + v3; v1:= v2 - v3; v1 := v2*v3; v1 := v2/v3;]
 }
 
@@ -440,11 +440,11 @@ test_2 = """
 abs_domain : interval;
 decl : [h:int; k:int; v1:int; v2:int; v3:int; v4:int;];
 blocks {
-   bb1[h:=k; u:=k; h:=v; assert (-3*h)+(4*v2)!=0;]
-   bb2[havoc h;]
+   bb1[h:=k; u:=k; h:=v; assert ((-3*h)+(4*v2)!=0);]
+   bb2[havoc (h);]
    bb3[]
-   bb4[assume (2*h)>0;]
-   bb5 [v1 := v2 + v3; v1 := v2 - v3; havoc v3;]
+   bb4[assume ((2*h)>0);]
+   bb5 [v1 := v2 + v3; v1 := v2 - v3; havoc(v3);]
    }
 edges {bb1 -> bb2; bb2 -> bb3; bb4->bb5; bb6 -> bb7;}
 """
@@ -456,8 +456,8 @@ decl : [x:int; y:int;];
 blocks {
    bb1[x:=0; y:=0;]
    bb2[]
-   bb3[assume (1*x)+(2*y)<10;x := x + 1; y := y + 1;]
-   bb4[assume (1*x)>=10;]
+   bb3[assume((1*x)+(2*y)<10) ; x := x + 1; y := y + 1;]
+   bb4[assume((1*x)>=10);]
    }
 edges {bb1 ->bb2; bb2 -> bb3; bb3-> bb2; bb2->bb4;}
 """
