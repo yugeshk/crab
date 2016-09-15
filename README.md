@@ -192,9 +192,10 @@ filename` where `filename` looks like:
     }
     edges {bb1 ->bb2; bb2 -> bb3; bb3-> bb2; bb2->bb4;}
 
-This is the supported grammar (note only linear integer expressions without functions):
+This is the supported grammar (start symbol `P`). Note only linear
+integer expressions without functions:
 
-    DOMAIN_DECL VARS_DECLS BLOCKS EDGES
+    P := DOMAIN_DECL VARS_DECLS BLOCKS EDGES
 	
 	DOMAIN_DECL := 'abs_domain' ':' DOMAINS ';'
 	DOMAINS := 'intervals | 'zones' | 'octagons' | 'polyhedra'
@@ -204,14 +205,14 @@ This is the supported grammar (note only linear integer expressions without func
 	TYPE = int
 	
 	BLOCKS := 'blocks' '{' BLOCK* '}'
-	BLOCK :=  ID '[' STATMENT* ']'
+	BLOCK :=  ID '[' STATEMENT* ']'
 	STATEMENT := ARITH | ASSIGN | ASSERT | ASSUME | HAVOC
 	A_OP := + | - | * | /
 	ARITH := ID ':=' ID  A_OP ID ';' | ID ':=' ID  A_OP NUM ';' 
 	ASSIGN := ID ':=' ID ';'
 	HAVOC := 'havoc' ID ';'
-	ASSERT := LIN_CONSTRAINT
-	ASSUME := LIN_CONSTRAINT
+	ASSERT := 'assert' '(' LIN_CONSTRAINT ')' ';'
+	ASSUME := 'assume' '(' LIN_CONSTRAINT ')' ';'
 	B_OP := > | < | = | != | >= | <=
     LIN_CONSTRAINT := LIN_EXPRESION B_OP NUM
 	LIN_EXPRESSION := '(' NUM * ID ')' | LIN_EXPRESSION + LIN_EXPRESSION	

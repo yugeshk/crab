@@ -1,4 +1,5 @@
 from pyparsing import *
+from crabTypes import *
 
 check_errors = False
 debug = False
@@ -277,15 +278,6 @@ class CrabParser(object):
     ### API needed by C++ to access to each element in the AST
     ##############
 
-    # TODO: I don't know how to iterate over ast from C++
-    #
-    # The solution is to create python classes for each kind of
-    # statement (inheriting from a base class statement), variable,
-    # linear expression and linear_constraint. In addition, we need
-    # methods such as getBasicBlocks, getInstructions, etc. In that
-    # way, C++ can then call their methods and access to their
-    # components.
-
     def getAbsDom (self):
         return self.ast ["abs_domain"]
 
@@ -312,9 +304,101 @@ class CrabParser(object):
                     #print "Edge " + "(" + str(pairlist[0]) + "," + str(pairlist[1]) + ")"
         return edges 
 
+    def makeIntVar (self, var):
+        return Var(var, Types.Int)
+
+    ## XXX: uffff is there is any better way?
+    @staticmethod
+    def is_int(s):
+        try: 
+            int(s)
+            return True
+        except ValueError:
+            return False
+
+    @staticmethod
+    def is_long(s):
+        try: 
+            long(s)
+            return True
+        except ValueError:
+            return False
+
+    def makeBinOp (self, op, lhs, op1, op2):
+        Op = BinaryOperation.ADD
+        if op == 'sub'   : Op = BinaryOperation.SUB
+        elif op == 'mul' : Op = BinaryOperation.MUL
+        elif op == 'div' : Op = BinaryOperation.DIV
+        elif op != 'add':
+            msg = "%s unknown binary arithmetic operator" % op
+            raise CrabParserException(msg)
+            
+        if self.is_int (op2) or self.is_long (op2):
+            return BinaryOperation (self.makeIntVar(lhs), Op, self.makeIntVar(op1), long(op2))
+        else:
+            return BinaryOperation (self.makeIntVar(lhs), Op, self.makeIntVar(op1), self.makeIntVar(op2))
+
+    def makeAssign (self, lhs, rhs):
+        if self.is_int (rhs) or self.is_long (rhs):
+            return Assign (self.makeIntVar (lhs), long (rhs))
+        else:
+            return Assign (self.makeIntVar (lhs), self.makeIntVar (rhs))
+
+    # inst represents a constraint
+    def makeCst (self, inst):
+        op   = inst['bop']
+        cst  = inst['num']
+        lexp = inst['l_exp']
+        
+        ### FIXME: lexp can be either a list or a list of lists.
+        ### It should be always a list of lists!
+        e = LinearExpression()
+        e.add_cst (0)
+        ### FIXME: assume all variables and constants are integers
+        if any(isinstance(el, list) for el in lexp):
+            for el in lexp:
+                e.add_term (LinearTerm (long(el[0]), self.makeIntVar(el[1])))
+        else:
+            e.add_term(LinearTerm (long(lexp[0]), self.makeIntVar(lexp[1])))
+
+        Op = LinearConstraint.GT
+        if op == '<':    Op = LinearConstraint.LT 
+        elif op == '=':  Op = LinearConstraint.EQ
+        elif op == '>=': Op = LinearConstraint.GEQ 
+        elif op == '<=': Op = LinearConstraint.LEQ 
+        elif op == '!=': Op = LinearConstraint.DIS 
+        elif op != '>':  
+            msg = "%s unknown comparison operator" % op
+            raise CrabParserException(msg)
+            
+        return LinearConstraint (e, Op, long(cst))
+
     def getInstructions (self, bb_name):
-        ## TODO
-        instrs = list () ## should be a list of Statements
+        ### FIXME: precompute all and store in a map
+        instrs = list () 
+        for k,v in self.ast.iteritems():
+            if k == "basic_blocks":
+                for name, inst_list in v.iteritems():
+                    if bb_name == name:
+                        ## inst = {"assignment" : list}
+                        for _ ,inst in inst_list.iteritems():
+                            ## XXX: I think we abuse of the use of
+                            ##      dictionaries. it's a bit weird to
+                            ##      have a loop just to grab each part of inst
+                            for inst_k, inst_v in inst.iteritems():
+                                if inst_k == "assignment":
+                                    instrs.append(self.makeAssign (inst_v[1], inst_v[0]))
+                                elif inst_k == "assume":     
+                                    instrs.append(Assume (self.makeCst(inst_v)))
+                                elif inst_k == "assert":     
+                                    instrs.append(Assert (self.makeCst(inst_v)))
+                                elif inst_k in ["add", "sub", "mul", "div"]:     
+                                    instrs.append(self.makeBinOp (inst_k, inst_v[0], inst_v[1], inst_v[2]))
+                                elif inst_k == "havoc":
+                                    instrs.append(Havoc (self.makeIntVar (inst_v[0])))
+                                else:
+                                    msg = "%s unknown instruction" % inst_name
+                                    raise CrabParserException(msg)
         return instrs
 
 ## This test should succeed without type-checking
@@ -372,7 +456,7 @@ decl : [x:int; y:int;];
 blocks {
    bb1[x:=0; y:=0;]
    bb2[]
-   bb3[assume (1*x)<10;x := x + 1; y := y + 1;]
+   bb3[assume (1*x)+(2*y)<10;x := x + 1; y := y + 1;]
    bb4[assume (1*x)>=10;]
    }
 edges {bb1 ->bb2; bb2 -> bb3; bb3-> bb2; bb2->bb4;}
@@ -384,4 +468,5 @@ if __name__ == "__main__":
   # p.parse(test_1)
   # p.parse(test_2)
   p.parse(test_3)
+  #print str(p.getInstructions ("bb2"))
   print p.ppAST()

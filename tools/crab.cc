@@ -135,60 +135,124 @@ class CfgBuilder {
 
 // A class that builds a CFG using a python parser
 class PyCfgBuilder: public CfgBuilder {
-
+  
   typedef crab::cfg_impl::cfg_t cfg_t;
   typedef cfg_t::basic_block_t basic_block_t;
+  typedef crab::cfg_impl::z_var z_var;
+  typedef crab::domain_impl::z_lin_t z_lin_t;
+  typedef crab::domain_impl::z_lin_cst_t z_lin_cst_t;
 
-  // z_var mk_z_var (boost::python::object py_var) 
-  // { // TODO 
-  // }
-
-  // z_lin_t mk_z_lin_exp (boost::python::object py_lin_exp) 
-  // { // TODO 
-  // }
-  
-  // z_lin_cst_t mk_z_lin_cst (boost::python::object py_lin_cst) 
-  // { // TODO 
-  // }
-
-  // z_lin_cst_t mk_z_lin_cst (boost::python::object py_lin_cst) 
-  // { // TODO 
-  // }
-
-  // void add_assign (basic_block_t &bb, boost::python::object py_assign) 
-  // { // TODO 
-  // }
-
-  // void add_assume (basic_block_t &bb, boost::python::object py_assume) 
-  // { // TODO 
-  // }
-
-  // void add_assert (basic_block_t &bb, boost::python::object py_assert) 
-  // { // TODO 
-  // }
-
-  // void add_havoc (basic_block_t &bb, boost::python::object py_havoc) 
-  // { // TODO 
-  // }
-
-  // void add_add (basic_block_t &bb, boost::python::object py_add) 
-  // { // TODO 
-  // }
-
-  // void add_sub (basic_block_t &bb, boost::python::object py_sub) 
-  // { // TODO 
-  // }
-
-  // void add_mul (basic_block_t &bb, boost::python::object py_mul) 
-  // { // TODO 
-  // }
-
-  // void adddiv (basic_block_t &bb, boost::python::object pydiv) 
-  // { // TODO 
-  // }
+  z_var mk_z_var (boost::python::object py_var) 
+  { 
+    if (py_var.attr("ty") != "int") 
+      CRAB_ERROR ("Sorry only supported integer variables for now");
     
+    std::string vname = boost::python::extract<std::string>(py_var.attr("name"));
+    return z_var (this->m_vfac [vname]);
+  }
 
+  z_lin_t mk_z_lin_exp (boost::python::object py_lin_exp) 
+  { 
+    auto terms = py_lin_exp.attr("terms");
+    boost::python::stl_input_iterator< boost::python::object > it(terms), et;
+    z_lin_t e (getNumber (py_lin_exp, "cst"));
+    for(; it != et; ++it) {
+      auto term = *it;
+      z_number factor = getNumber (term, "factor");
+      z_var var = getVar (term, "var");
+      e = e + (factor * var);
+    }
+    return e;
+  }
+  
+  z_lin_cst_t mk_z_lin_cst (boost::python::object py_lin_cst) 
+  { 
+    z_lin_t e = mk_z_lin_exp (py_lin_cst.attr("exp"));
+    z_number cst = getNumber(py_lin_cst, "cst");
+    auto op = py_lin_cst.attr("op");
+    if (op == ">=")
+      return e >= cst;
+    else if (op == "<=")
+      return e <= cst;
+    else if (op == "=")
+      return e == cst;
+    else if (op == "!=")
+      return e != cst;
+    else if (op == ">") // only because we use integers we can replace x > y with x >= y+1
+      return e >= cst + z_number(1);
+    else if (op == "<") // only because we use integers we can replace x < y with x+1 <= y
+      return e + z_number(1) <= cst;
+    else 
+      CRAB_ERROR ("unrecognized comparison operator");
+  }
 
+  void add_assign (basic_block_t &bb, boost::python::object py_stmt) 
+  { 
+    if (py_stmt.attr("rhs").attr("__class__").attr("__name__") == "Var") {
+      bb.assign (mk_z_var (py_stmt.attr("lhs")).name (), 
+                 mk_z_var(py_stmt.attr("rhs")));
+    }
+    else {
+      bb.assign (mk_z_var (py_stmt.attr("lhs")).name (), 
+                 z_number(boost::python::extract<long>(py_stmt.attr("rhs"))));
+    }
+  }
+
+  void add_assume (basic_block_t &bb, boost::python::object py_stmt) 
+  { 
+    z_lin_cst_t cst = mk_z_lin_cst(py_stmt.attr("constraint"));    
+    bb.assume (cst);
+  }
+
+  void add_assert (basic_block_t &bb, boost::python::object py_stmt) 
+  { 
+    z_lin_cst_t cst = mk_z_lin_cst(py_stmt.attr("constraint"));    
+    bb.assertion (cst);
+  }
+
+  void add_havoc (basic_block_t &bb, boost::python::object py_stmt) 
+  { 
+    z_var var = mk_z_var(py_stmt.attr("var"));    
+    bb.havoc (var.name());
+  }
+
+  z_var getVar (boost::python::object o, const char* Att) {
+    return mk_z_var (o.attr(Att));
+  }
+
+  z_number getNumber (boost::python::object o, const char* Att) {
+    return z_number (boost::python::extract<long>(o.attr(Att)));
+  }
+
+  void add_binop (basic_block_t &bb, boost::python::object py_stmt) 
+  { 
+     z_var lhs = mk_z_var(py_stmt.attr("lhs"));
+     z_var op1 = mk_z_var(py_stmt.attr("op1"));
+
+     if (py_stmt.attr("op") == "+") {
+       if (py_stmt.attr("op2").attr("__class__").attr("__name__") == "Var")
+         bb.add (lhs, op1, getVar (py_stmt, "op2"));
+       else 
+         bb.add (lhs, op1, getNumber (py_stmt, "op2"));
+     } else if (py_stmt.attr("op") == "-") {
+       if (py_stmt.attr("op2").attr("__class__").attr("__name__") == "Var")
+         bb.sub (lhs, op1, getVar (py_stmt, "op2"));
+       else 
+         bb.sub (lhs, op1, getNumber (py_stmt, "op2"));
+     } else if (py_stmt.attr("op") == "*") {
+       if (py_stmt.attr("op2").attr("__class__").attr("__name__") == "Var")
+         bb.mul (lhs, op1, getVar (py_stmt, "op2"));
+       else 
+         bb.mul (lhs, op1, getNumber (py_stmt, "op2"));
+     } else if (py_stmt.attr("op") == "/") {
+       if (py_stmt.attr("op2").attr("__class__").attr("__name__") == "Var")
+         bb.div (lhs, op1, getVar (py_stmt, "op2"));
+       else 
+         bb.div (lhs, op1, getNumber (py_stmt, "op2"));
+     } else
+       CRAB_ERROR ("unrecognized arithmetic operator");
+  }
+    
  public:
 
   PyCfgBuilder (crab::cfg_impl::variable_factory_t &vfac)
@@ -199,11 +263,12 @@ class PyCfgBuilder: public CfgBuilder {
     namespace py = boost::python;
     try {
       Py_Initialize();
-      // insert the current working directory into the python path so module search 
-      // can take advantage. This must happen after python has been initiialized.
-      boost::filesystem::path workingDir = boost::filesystem::absolute("./").normalize();
-      PyObject* sysPath = PySys_GetObject((char*) "path");
-      PyList_Insert(sysPath, 0, PyString_FromString(workingDir.string().c_str()));
+      // XXX: this does not work
+      //// insert the current working directory into the python path so module search 
+      //// can take advantage. This must happen after python has been initiialized.
+      // boost::filesystem::path workingDir = boost::filesystem::absolute("./").normalize();
+      // PyObject* sysPath = PySys_GetObject((char*) "path");
+      // PyList_Insert(sysPath, 0, PyString_FromString(workingDir.string().c_str()));
       
       // load the main namespace  
       py::object main_module = py::import("__main__");
@@ -222,17 +287,11 @@ class PyCfgBuilder: public CfgBuilder {
 
         // Get abstract domain
         std::string abs_dom = py::extract<std::string>(parser.attr("getAbsDom")());
-        if (abs_dom == "intervals") {
-          m_abs_domain = INTERVALS;
-        } else if (abs_dom == "zones") {
-          m_abs_domain = ZONES;
-        } else if (abs_dom == "octagons") {
-          m_abs_domain = OCTAGONS;          
-        } else if (abs_dom == "polyhedra") {
-          m_abs_domain = POLYHEDRA;
-        } else {
-          CRAB_ERROR ("Abstract domain " + abs_dom + " not recognized.\nTry intervals, zones, octagons or polyhedra");
-        }
+        if (abs_dom == "intervals")      m_abs_domain = INTERVALS;
+        else if (abs_dom == "zones")     m_abs_domain = ZONES;
+        else if (abs_dom == "octagons")  m_abs_domain = OCTAGONS;          
+        else if (abs_dom == "polyhedra") m_abs_domain = POLYHEDRA;
+        else CRAB_ERROR ("Abstract domain " + abs_dom + " not recognized.\nTry intervals, zones, octagons or polyhedra"); 
 
         // Get blocks
         py::object bbs = parser.attr("getBasicBlocks")();
@@ -243,10 +302,7 @@ class PyCfgBuilder: public CfgBuilder {
           bb_names.push_back (bb_name);
         }
 
-        if (bb_names.empty ())  {
-          CRAB_WARN ("program is empty!\n");
-          return; 
-        }
+        if (bb_names.empty ()) return;
         
         // Create CFG and set the entry block
         // XXX: We need to know the entry block of the CFG
@@ -254,8 +310,19 @@ class PyCfgBuilder: public CfgBuilder {
         this->m_cfg = new cfg_t(bb_names[0]);
         // Add blocks
         for (auto bb_name: bb_names) {
-          /*auto &bb =*/ this->m_cfg->insert (bb_name);
-          // TODO: Add instructions in bb
+          auto &bb = this->m_cfg->insert (bb_name);
+          py::object insts = parser.attr("getInstructions")(bb_name);
+          py::stl_input_iterator< py::object > iit(insts), iet;
+          for(; iit != iet; ++iit) {
+            py::object py_inst = *iit;
+            py::object class_name = py_inst.attr("__class__").attr("__name__");            
+            if (class_name == "BinaryOperation") add_binop (bb, py_inst);
+            else if (class_name == "Assign") add_assign (bb, py_inst); 
+            else if (class_name == "Assert") add_assert (bb, py_inst);
+            else if (class_name == "Assume") add_assume (bb, py_inst);
+            else if (class_name == "Havoc")  add_havoc (bb, py_inst);
+            else CRAB_ERROR("unrecognized python instruction");
+          }
         }
 
         // Add edges        
@@ -276,6 +343,7 @@ class PyCfgBuilder: public CfgBuilder {
       PyErr_Print();
     }
   }
+
 };
 
 // A class that call Crab to infer invariants from a CFG
