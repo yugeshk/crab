@@ -37,6 +37,7 @@ option(USE_PY_SETUP "Use python distutils to install python modules" OFF)
 
 if (PYTHON AND NOT USE_PY_SETUP)
   install(PROGRAMS crabParser.py DESTINATION bin)
+  install(PROGRAMS crabTypes.py DESTINATION bin)
 endif()
 
 # if (PYTHON AND USE_PY_SETUP)

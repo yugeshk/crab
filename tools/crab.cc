@@ -22,6 +22,10 @@
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/xml_parser.hpp>
+
 #include <fstream>
 #include <string>
 
@@ -85,20 +89,21 @@ namespace crab {
 struct crabOpts 
 {
   bool stats_enabled;
-  std::string filename;
+  std::string infile;
+  std::string outfile;
 
   unsigned widening ;
   unsigned narrowing;
   unsigned widening_thresholds;
 
   crabOpts ()
-  : stats_enabled(false), filename(""),
-    widening (1), narrowing(2), widening_thresholds (50) { }
+      : stats_enabled(false), infile(""), outfile (""),
+        widening (1), narrowing(2), widening_thresholds (50) { }
 
   void write (std::ostream& o) const 
   {
     o << "Read user options\n";
-    o << "\tFilename=" << (filename == "" ? "\"\"" : filename) << "\n";
+    o << "\tFilename=" << (infile == "" ? "\"\"" : infile) << "\n";
     o << "\tEnabled stats=" << (stats_enabled? "yes" : "not") << "\n";
     o << "\tWidening=" << widening << "\n";
     o << "\tNarrowing=" << narrowing << "\n";
@@ -263,9 +268,8 @@ class PyCfgBuilder: public CfgBuilder {
     namespace py = boost::python;
     try {
       Py_Initialize();
-      // XXX: this does not work
-      //// insert the current working directory into the python path so module search 
-      //// can take advantage. This must happen after python has been initiialized.
+      //insert the current working directory into the python path so module search 
+      //can take advantage. This must happen after python has been initiialized.
       // boost::filesystem::path workingDir = boost::filesystem::absolute("./").normalize();
       // PyObject* sysPath = PySys_GetObject((char*) "path");
       // PyList_Insert(sysPath, 0, PyString_FromString(workingDir.string().c_str()));
@@ -377,7 +381,7 @@ class Crab {
     crab::outs() << "Invariants using " << inv.getDomainName () << "\n";
     a.Run (inv);
 
-    // Print invariants
+    // Print invariants to standard output
     for (auto &b : *m_cfg) {
       auto inv = a[b.label ()];
       crab::outs() << crab::cfg_impl::get_label_str (b.label ()) << "=" << inv << "\n";
@@ -388,6 +392,34 @@ class Crab {
     if (m_copts.stats_enabled) {
       crab::CrabStats::Print(crab::outs());
       crab::CrabStats::reset();
+    }
+
+    if (m_copts.outfile != "") {
+      // Create an empty property tree object
+      using boost::property_tree::ptree;
+      ptree pt;
+      ptree root ;      
+      for (auto &b : *m_cfg) {
+        auto inv = a[b.label ()];
+        ptree bb_node;      
+        crab::crab_string_os str_os;
+        auto csts = inv.to_linear_constraint_system ();
+        str_os << csts;
+        bb_node.put ("name", b.label());
+        // FIXME: the invariants must be enclosed in strings for xml
+        bb_node.put ("invariants", str_os.str());
+        root.add_child ("basic_block", bb_node);
+      }
+      pt.add_child("crab", root);
+
+      boost::filesystem::path p(m_copts.outfile);      
+      if (p.extension ().string() == ".json")
+        write_json (m_copts.outfile, pt);
+      else if (p.extension ().string () == ".xml") {
+        boost::property_tree::xml_writer_settings<char> settings('\t', 1);
+        write_xml(m_copts.outfile, pt, std::locale(), settings);
+      } else 
+        CRAB_ERROR ("output format " + p.extension ().string() + " not recognized");
     }
   }
 };
@@ -409,7 +441,9 @@ static int crab_options (int argc, char**argv, crabOpts &copts)
   po.add_options()                                                                                    
       ("log",  boost::program_options::value<std::vector<string> >(), "Enable specified log level");  
   po.add_options()
-      ("input-file", boost::program_options::value<std::string>(), "input file") ;
+      ("input-file", boost::program_options::value<std::string>(), "input file with CFG") ;
+  po.add_options()
+      ("output-file,o", boost::program_options::value<std::string>(), "output file with invariants per basic block");
   po.add_options()                                                                                    
       ("widening-delay",boost::program_options::value<unsigned>(&widening), "Max number of iterations until performing widening");                  
   po.add_options()                                                                                    
@@ -436,7 +470,12 @@ static int crab_options (int argc, char**argv, crabOpts &copts)
 
   if (vm.count("input-file")) {
     boost::filesystem::path abspath = boost::filesystem::absolute(vm ["input-file"].as<std::string>());
-    copts.filename = abspath.string();
+    copts.infile = abspath.string();
+  }
+
+  if (vm.count("output-file")) {
+    boost::filesystem::path abspath = boost::filesystem::absolute(vm ["output-file"].as<std::string>());
+    copts.outfile = abspath.string();
   }
 
   if (vm.count("log")) {                                                                              
@@ -467,7 +506,7 @@ int main (int argc, char**argv)
     //copts.write (std::cout); // for debugging
     crab::cfg_impl::variable_factory_t vfac;
     PyCfgBuilder B (vfac);
-    B.run (copts.filename);
+    B.run (copts.infile);
     Crab crab_tool (B.get_cfg (), vfac, copts);
     crab::outs () << *(B.get_cfg ()) << "\n";
     switch (B.get_abs_dom ())

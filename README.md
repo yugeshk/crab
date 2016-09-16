@@ -161,15 +161,11 @@ the entry of each basic block, should be something like this:
     bb2={i -> [0, 99], x -> [1, +oo], y -> [0, 99], y-i<=0, y-x<=0, i-x<=0, i-y<=0}
 	ret={i -> [100, 100], x -> [100, +oo], y -> [100, 100], y-i<=0, y-x<=0, i-x<=0, i-y<=0}
 
-# Example reading the CFG from a file#
+# Example reading the CFG from a file and writing invariants to a json file #
 
 Crab can also communicate with other tools via files. This is useful
 with the client tool is written in a language different from C++ and
 thus, the C++ API cannot be used directly.
-
-The client tool only needs to write the CFG into a file following the
-grammar described below. Currently, this grammar is a subset of the
-language supported by the C++ API.
 
 1. Add option `-DENABLE_CFG_FROM_FILE=ON` to cmake. That is, when cmake
    installs crab type:
@@ -178,24 +174,13 @@ language supported by the C++ API.
         cmake -DENABLE_CFG_FROM_FILE=ON -DCMAKE_INSTALL_PREFIX=run ../
         cmake --build . --target install 
 
-2. Add manually  into `PYTHONPATH` the path to `tools/crabParser.py` (temporary hack).
+2. Add manually  into `PYTHONPATH` the path to the directory `tools` (temporary hack).
 
-Steps 1 and 2 should be performned only once. Then, type `crab
-filename` where `filename` looks like:
+Steps 1 and 2 should be performned only once. Then, type
 
-    abs_domain : zones;
-    decl : [x:int; y:int;];
-    blocks {
-      bb1[x:=0; y:=0;]
-      bb2[]
-      bb3[assume((1*x)<10); x := x + 1; y := y + 1;]
-      bb4[assume((1*x)>=10);]
-    }
-    edges {bb1 ->bb2; bb2 -> bb3; bb3-> bb2; bb2->bb4;}
+    crab cfg.txt -o invars.json
 
-This is the supported grammar (start symbol `P`). Note only linear
-integer expressions without functions. Expressions like `EDGE*`
-represents zero or more repetitions of `EDGE`:
+where file `cfg.txt` must be defined using the following grammar:
 
     P := DOMAIN_DECL VARS_DECLS BLOCKS EDGES
 	
@@ -221,6 +206,30 @@ represents zero or more repetitions of `EDGE`:
 
 	EDGES := 'edges' '{' EDGE* '}'
 	EDGE := ID '->' ID ';'	
+
+
+Expressions like `EDGE*` represents zero or more repetitions of
+`EDGE`. Note that only linear integer expressions without functions
+are supported. This is just a subset of the language supported through
+the C++ API.
+
+For example, given the following file:
+
+    abs_domain : zones;
+    decl : [x:int; y:int;];
+    blocks {
+      bb1[x:=0; y:=0;]
+      bb2[]
+      bb3[assume((1*x)<10); x := x + 1; y := y + 1;]
+      bb4[assume((1*x)>=10);]
+    }
+    edges {bb1 ->bb2; bb2 -> bb3; bb3-> bb2; bb2->bb4;}
+
+The content of `invars.json` is:
+
+    ADD json file here
+
+Each invariant holds at the entry of each basic block.
 
 # Integrating Crab in other verification tools #
 
