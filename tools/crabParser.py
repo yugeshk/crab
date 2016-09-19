@@ -59,45 +59,114 @@ class CrabParser(object):
             elif c == "num":
                 cst_out.update({c:e})
         return cst_out
-                
+
+
+    def _instrAssignment(self, instruct):
+        if debug: print "handling assigment"
+        return [instruct[0], instruct[1]]
         
+
+    def _instrAssumeAssert(self, instruct):
+        if debug: print "handling assume/assert"
+        cst = instruct['cst']
+        self._checkVars(instruct.getName(), cst['l_exp'])
+        linear_cst = self._mkLinearCst(cst)
+        return linear_cst
+
+
+    def _instrHavoc(self, instruct):
+        if debug: print "handling havoc"
+        if check_errors and inst[0] not in self.Vars:
+            msg = "In Havoc %s is not declared" % h_var[0]
+            raise CrabParserException(msg)
+        return instruct
+
+    def _instrOperation(self, instruct):
+        if debug: print "handling operation: %s" % instruct.getName()
+        if check_errors and not set(inst).issubset(set(self.Vars)):
+            v = " ,".join(x for x in set(inst) - set(self.Vars))
+            msg = "In %s: %s is not declared" % (inst_name, v)
+            raise CrabParserException(msg)
+        return instruct
+
     def _basicBlocks(self, bbs):
         bb_dict = dict()
         for bb in bbs:
-            print str(bb)
             bb_name = bb.bb_name[0]
             self.BB.append(bb_name)
             bb_dict.update({bb_name:{}})
+            all_instruct =  bb.instr
             inst_n = 0
+            assignment, assume, ass = dict(), dict(), dict()
+            havoc, operation = dict(), dict()
             instr_dict = dict()
-            tbd_dict = bb.instr.asDict()
-            for inst_name, inst in tbd_dict.iteritems():
-                if inst_name == "assignment":
-                    assignment = [inst['rhs'][0], inst['lhs'][0]]
-                    instr_dict.update({inst_n:{"assignment":assignment}})
-                elif inst_name == "assume" or inst_name == "assertion":
-                    cst = inst['cst']
-                    self._checkVars(inst_name, cst['l_exp'])
-                    linear_cst = self._mkLinearCst(cst)
-                    instr_dict.update({inst_n:{inst_name:linear_cst}})
-                elif inst_name in ["add", "sub", "mul", "div"]:
-                    if check_errors and not set(inst).issubset(set(self.Vars)):
-                        v = " ,".join(x for x in set(inst) - set(self.Vars))
-                        msg = "In %s: %s is not declared" % (inst_name, v)
-                        raise CrabParserException(msg)
-                    instr_dict.update({inst_n:{inst_name:inst}})
-                elif inst_name is "havoc":
-                    if check_errors and inst[0] not in self.Vars:
-                        msg = "In Havoc %s is not declared" % h_var[0]
-                        raise CrabParserException(msg)
-                    instr_dict.update({inst_n:{"havoc":inst}})
+            instruct_dict = dict()
+            for instruct in all_instruct:
+                if instruct.getName() == "assignment":
+                    instr = self._instrAssignment(instruct)
+                    instruct_dict.update({inst_n:{"instr": instr, "type": "assignment"}})
+                elif instruct.getName() == "assume":
+                    instr = self._instrAssumeAssert(instruct)
+                    instruct_dict.update({inst_n:{"instr": instr, "type": "assume"}})
+                    
+                elif instruct.getName() == "assert":
+                    instr = self._instrAssumeAssert(instruct)
+                    instruct_dict.update({inst_n:{"instr": instr, "type": "assume"}})
+                    
+                elif instruct.getName() == "havoc":
+                    instr =  self._instrHavoc(instruct)
+                    instuct_dict.update({inst_n:{"type":"havoc", "instr":instr}})
+                elif instruct.getName() in ["add", "sub", "mul", "div"]:
+                    instr = self._instrOperation(instruct)
+                    instruct_dict.update({inst_n:{"type":instruct.getName(), "instr":instr}})
                 else:
                     msg = "%s unknown instruction" % inst_name
                     raise CrabParserException(msg)
-                inst_n +=1
-            bb_dict.update({bb_name:instr_dict})
+                inst_n+=1
+            
+            bb_dict.update({bb_name: instruct_dict})
         (self.CRAB_PROG["basic_blocks"]).update(bb_dict)
+        
         return
+
+        
+    # def _basicBlocks(self, bbs):
+    #     bb_dict = dict()
+    #     for bb in bbs:
+    #         print str(bb)
+    #         bb_name = bb.bb_name[0]
+    #         self.BB.append(bb_name)
+    #         bb_dict.update({bb_name:{}})
+    #         inst_n = 0
+    #         instr_dict = dict()
+    #         tbd_dict = bb.instr.asDict()
+    #         for inst_name, inst in tbd_dict.iteritems():
+    #             if inst_name == "assignment":
+    #                 assignment = [inst['rhs'][0], inst['lhs'][0]]
+    #                 instr_dict.update({inst_n:{"assignment":assignment}})
+    #             elif inst_name == "assume" or inst_name == "assertion":
+    #                 cst = inst['cst']
+    #                 self._checkVars(inst_name, cst['l_exp'])
+    #                 linear_cst = self._mkLinearCst(cst)
+    #                 instr_dict.update({inst_n:{inst_name:linear_cst}})
+    #             elif inst_name in ["add", "sub", "mul", "div"]:
+    #                 if check_errors and not set(inst).issubset(set(self.Vars)):
+    #                     v = " ,".join(x for x in set(inst) - set(self.Vars))
+    #                     msg = "In %s: %s is not declared" % (inst_name, v)
+    #                     raise CrabParserException(msg)
+    #                 instr_dict.update({inst_n:{inst_name:inst}})
+    #             elif inst_name is "havoc":
+    #                 if check_errors and inst[0] not in self.Vars:
+    #                     msg = "In Havoc %s is not declared" % h_var[0]
+    #                     raise CrabParserException(msg)
+    #                 instr_dict.update({inst_n:{"havoc":inst}})
+    #             else:
+    #                 msg = "%s unknown instruction" % inst_name
+    #                 raise CrabParserException(msg)
+    #             inst_n +=1
+    #         bb_dict.update({bb_name:instr_dict})
+    #     (self.CRAB_PROG["basic_blocks"]).update(bb_dict)
+    #     return
 
 
     def _edges(self, edges):
@@ -161,8 +230,13 @@ class CrabParser(object):
     a2 = a2.replace("<", " ")
     a2 = a2.replace("(", " ")
     a2 = a2.replace(")", " ")
-    ID = Word(alphanums + "_")
+    ID = Word(alphas + alphanums + "_")
+    Keyword = CaselessKeyword("; : [ ] { } + = - * > < ! ( ) /")
     VARS = OneOrMore(ID | Word(a2))
+    #identLeadChars = alphas + alphas8bit + "_"
+    #identBodyChars = identLeadChars + nums
+    #VARS = ~Keyword + Word( identLeadChars, identBodyChars )
+    
     NUM = Word('-0123456789')
 
     #VARS = Group(ID)
@@ -454,7 +528,7 @@ test_3 = """
 abs_domain : zones;
 decl : [x:int; y:int;];
 blocks {
-   bb1[x:=0; y:=0;]
+   bb1[3x:=0; y:=0;]
    bb2[]
    bb3[assume((1*x)+(2*y)<10) ; x := x + 1; y := y + 1;]
    bb4[assume((1*x)>=10);]
