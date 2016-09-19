@@ -115,7 +115,7 @@ class CrabParser(object):
                     
                 elif instruct.getName() == "havoc":
                     instr =  self._instrHavoc(instruct)
-                    instuct_dict.update({inst_n:{"type":"havoc", "instr":instr}})
+                    instruct_dict.update({inst_n:{"type":"havoc", "instr":instr}})
                 elif instruct.getName() in ["add", "sub", "mul", "div"]:
                     instr = self._instrOperation(instruct)
                     instruct_dict.update({inst_n:{"type":instruct.getName(), "instr":instr}})
@@ -353,6 +353,7 @@ class CrabParser(object):
     ##############
 
     def getAbsDom (self):
+        print self.ast
         return self.ast ["abs_domain"]
 
     def getBasicBlocks (self):
@@ -381,7 +382,7 @@ class CrabParser(object):
     def makeIntVar (self, var):
         return Var(var, Types.Int)
 
-    ## XXX: uffff is there is any better way?
+    ## XXX: uffff is there any better way?
     @staticmethod
     def is_int(s):
         try: 
@@ -454,25 +455,20 @@ class CrabParser(object):
             if k == "basic_blocks":
                 for name, inst_list in v.iteritems():
                     if bb_name == name:
-                        ## inst = {"assignment" : list}
                         for _ ,inst in inst_list.iteritems():
-                            ## XXX: I think we abuse of the use of
-                            ##      dictionaries. it's a bit weird to
-                            ##      have a loop just to grab each part of inst
-                            for inst_k, inst_v in inst.iteritems():
-                                if inst_k == "assignment":
-                                    instrs.append(self.makeAssign (inst_v[1], inst_v[0]))
-                                elif inst_k == "assume":     
-                                    instrs.append(Assume (self.makeCst(inst_v)))
-                                elif inst_k == "assert":     
-                                    instrs.append(Assert (self.makeCst(inst_v)))
-                                elif inst_k in ["add", "sub", "mul", "div"]:     
-                                    instrs.append(self.makeBinOp (inst_k, inst_v[0], inst_v[1], inst_v[2]))
-                                elif inst_k == "havoc":
-                                    instrs.append(Havoc (self.makeIntVar (inst_v[0])))
-                                else:
-                                    msg = "%s unknown instruction" % inst_name
-                                    raise CrabParserException(msg)
+                            if inst["type"] == "assignment":
+                                instrs.append(self.makeAssign (inst["instr"][0], inst["instr"][1]))
+                            elif inst["type"] == "assume":     
+                                instrs.append(Assume (self.makeCst(inst["instr"])))
+                            elif inst["type"] == "assert":     
+                                instrs.append(Assert (self.makeCst(inst["instr"])))
+                            elif inst["type"] in ["add", "sub", "mul", "div"]:     
+                                instrs.append(self.makeBinOp (inst["type"], inst["instr"][0], inst["instr"][1], inst["instr"][2]))
+                            elif inst["type"] == "havoc":
+                                instrs.append(Havoc (self.makeIntVar (inst["instr"][0])))
+                            else:
+                                msg = "%s unknown instruction" % inst["type"]
+                                raise CrabParserException(msg)
         return instrs
 
 ## This test should succeed without type-checking

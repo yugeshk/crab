@@ -227,9 +227,33 @@ For example, given the following file:
 
 The content of `invars.json` is:
 
-    ADD json file here
+	{
+		"crab":
+		{
+			"basic_block":
+			{
+				"name": "bb4",
+				"invariants": "{-x <= 0; x <= 10; -y <= 0; y <= 10; -z <= -5; z <= 5; -x+y <= 0; x-y <= 0}"
+			},
+			"basic_block":
+			{
+				"name": "bb3",
+				"invariants": "{-x <= 0; x <= 10; -y <= 0; y <= 10; -z <= -5; z <= 5; -x+y <= 0; x-y <= 0}"
+			},
+			"basic_block":
+			{
+				"name": "bb2",
+				"invariants": "{-x <= 0; x <= 10; -y <= 0; y <= 10; -x+y <= 0; x-y <= 0}"
+			},
+			"basic_block":
+			{
+				"name": "bb1",
+				"invariants": "{}"
+			}
+		}
+	}
 
-Each invariant holds at the entry of each basic block.
+Each `invariants` formula holds at the entry of each basic block.
 
 # Integrating Crab in other verification tools #
 
