@@ -16,6 +16,8 @@
 //#include <crab/domains/array_smashing.hpp>
 //#include <crab/domains/combined_domains.hpp>                      
 
+#include <crab/tools/config.h>
+
 #include <boost/python.hpp>
 #include <boost/python/stl_iterator.hpp>
 
@@ -268,11 +270,10 @@ class PyCfgBuilder: public CfgBuilder {
     namespace py = boost::python;
     try {
       Py_Initialize();
-      //insert the current working directory into the python path so module search 
-      //can take advantage. This must happen after python has been initiialized.
-      // boost::filesystem::path workingDir = boost::filesystem::absolute("./").normalize();
-      // PyObject* sysPath = PySys_GetObject((char*) "path");
-      // PyList_Insert(sysPath, 0, PyString_FromString(workingDir.string().c_str()));
+
+      boost::filesystem::path workingDir = boost::filesystem::absolute(__pythonpath__).normalize();
+      PyObject* sysPath = PySys_GetObject((char*) "path");
+      PyList_Insert(sysPath, 0, PyString_FromString(workingDir.string().c_str()));
       
       // load the main namespace  
       py::object main_module = py::import("__main__");

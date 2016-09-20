@@ -68,7 +68,7 @@ installation of the libraries is optional.
 If you want to use the BOXES domain then add `-DUSE_LDD=ON` option.
 
 If you want to use the Apron library domains then add `-DUSE_APRON=ON` option.
-
+	
 # Example using C++ API#
 
 Assume we want to perform static analysis on the following C-like
@@ -167,20 +167,18 @@ Crab can also communicate with other tools via files. This is useful
 with the client tool is written in a language different from C++ and
 thus, the C++ API cannot be used directly.
 
-1. Add option `-DENABLE_CFG_FROM_FILE=ON` to cmake. That is, when cmake
-   installs crab type:
+For that, add option `-DENABLE_CFG_FROM_FILE=ON` to cmake:
 
         mkdir build && cd build
         cmake -DENABLE_CFG_FROM_FILE=ON -DCMAKE_INSTALL_PREFIX=run ../
         cmake --build . --target install 
 
-2. Add manually  into `PYTHONPATH` the path to the directory `tools` (temporary hack).
 
-Steps 1 and 2 should be performned only once. Then, type
+Then, just type:
 
-    crab cfg.txt -o invars.json
+    ${CMAKE_INSTALL_PREFIX}/bin/crab test.crab -o test.json
 
-where file `cfg.txt` must be defined using the following grammar:
+where file `test.crab` must be defined using the following grammar:
 
     P := DOMAIN_DECL VARS_DECLS BLOCKS EDGES
 	
@@ -225,7 +223,7 @@ For example, given the following file:
     }
     edges {bb1 ->bb2; bb2 -> bb3; bb3-> bb2; bb2->bb4;}
 
-The content of `invars.json` is:
+The content of `test.json` is:
 
 	{
 		"crab":
@@ -253,7 +251,9 @@ The content of `invars.json` is:
 		}
 	}
 
-Each `invariants` formula holds at the entry of each basic block.
+Each `invariants` formula holds at the entry of each basic block. The
+invariant `{}` represents `top` (i.e., `true`).
+
 
 # Integrating Crab in other verification tools #
 

@@ -354,7 +354,6 @@ class CrabParser(object):
     ##############
 
     def getAbsDom (self):
-        print self.ast
         return self.ast ["abs_domain"]
 
     def getBasicBlocks (self):

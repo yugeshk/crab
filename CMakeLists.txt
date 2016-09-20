@@ -291,6 +291,9 @@ include_directories (${CMAKE_BINARY_DIR}/include)
 configure_file( include/crab/config.h.cmake
                 ${CMAKE_BINARY_DIR}/include/crab/config.h )
 
+configure_file( tools/config.h.cmake
+                ${CMAKE_BINARY_DIR}/include/crab/tools/config.h )
+
 add_subdirectory(lib)
 
 if (ENABLE_TESTS)
@@ -298,7 +301,7 @@ if (ENABLE_TESTS)
    add_subdirectory(tests)
 endif ()
 
-if (ENABLE_CFG_FROM_FILE)
+if (ENABLE_CFG_FROM_FILE)  
   add_subdirectory (tools)
 endif ()
 
