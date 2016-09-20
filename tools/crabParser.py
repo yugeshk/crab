@@ -85,7 +85,7 @@ class CrabParser(object):
         if debug: print "handling operation: %s" % instruct.getName()
         if check_errors and not set(inst).issubset(set(self.Vars)):
             v = " ,".join(x for x in set(inst) - set(self.Vars))
-            msg = "In %s: %s is not declared" % (inst_name, v)
+            msg = "In %s: %s is not declared" % (instruct.getName(), v)
             raise CrabParserException(msg)
         return instruct
 
@@ -109,9 +109,9 @@ class CrabParser(object):
                     instr = self._instrAssumeAssert(instruct)
                     instruct_dict.update({inst_n:{"instr": instr, "type": "assume"}})
                     
-                elif instruct.getName() == "assert":
+                elif instruct.getName() == "assertion":
                     instr = self._instrAssumeAssert(instruct)
-                    instruct_dict.update({inst_n:{"instr": instr, "type": "assume"}})
+                    instruct_dict.update({inst_n:{"instr": instr, "type": "assert"}})
                     
                 elif instruct.getName() == "havoc":
                     instr =  self._instrHavoc(instruct)
@@ -120,8 +120,9 @@ class CrabParser(object):
                     instr = self._instrOperation(instruct)
                     instruct_dict.update({inst_n:{"type":instruct.getName(), "instr":instr}})
                 else:
-                    msg = "%s unknown instruction" % inst_name
+                    msg = "%s unknown instruction" % instruct.getName()
                     raise CrabParserException(msg)
+                    
                 inst_n+=1
             
             bb_dict.update({bb_name: instruct_dict})
@@ -429,12 +430,14 @@ class CrabParser(object):
         ### It should be always a list of lists!
         e = LinearExpression()
         e.add_cst (0)
+
+        lterms = lexp.asList ()
         ### FIXME: assume all variables and constants are integers
-        if any(isinstance(el, list) for el in lexp):
-            for el in lexp:
-                e.add_term (LinearTerm (long(el[0]), self.makeIntVar(el[1])))
+        if any(isinstance(el, list) for el in lterms):
+            for term in lterms:
+                e.add_term (LinearTerm (long(term[0]), self.makeIntVar(term[1])))
         else:
-            e.add_term(LinearTerm (long(lexp[0]), self.makeIntVar(lexp[1])))
+            e.add_term(LinearTerm (long(lterms[0]), self.makeIntVar(lterms[1])))
 
         Op = LinearConstraint.GT
         if op == '<':    Op = LinearConstraint.LT 
@@ -525,7 +528,7 @@ abs_domain : zones;
 decl : [x:int; y:int;];
 blocks {
    bb1[3x:=0; y:=0;]
-   bb2[]
+   bb2[assume((1*y)>=0);]
    bb3[assume((1*x)+(2*y)<10) ; x := x + 1; y := y + 1;]
    bb4[assume((1*x)>=10);]
    }
