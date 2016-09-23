@@ -124,7 +124,7 @@ class CfgBuilder {
  protected:
 
   crab::cfg_impl::variable_factory_t &m_vfac;  
-  crab::cfg_impl::cfg_t* m_cfg;
+  std::shared_ptr<crab::cfg_impl::cfg_t> m_cfg;
   abs_domain_t m_abs_domain;
 
   CfgBuilder (crab::cfg_impl::variable_factory_t &vfac)
@@ -135,7 +135,7 @@ class CfgBuilder {
   // Name of the file that contains the CFG
   virtual void run (std::string filename) = 0;
 
-  crab::cfg_impl::cfg_t* get_cfg () { return m_cfg;}
+  crab::cfg_impl::cfg_t* get_cfg () { return &(*m_cfg);}
   abs_domain_t get_abs_dom () const { return m_abs_domain;}
 };
 
@@ -312,7 +312,7 @@ class PyCfgBuilder: public CfgBuilder {
         // Create CFG and set the entry block
         // XXX: We need to know the entry block of the CFG
         // For now, we assume the first block is the entry!
-        this->m_cfg = new cfg_t(bb_names[0]);
+        this->m_cfg = std::make_shared<cfg_t>(bb_names[0]);
         // Add blocks
         for (auto bb_name: bb_names) {
           auto &bb = this->m_cfg->insert (bb_name);
@@ -512,9 +512,9 @@ int main (int argc, char**argv)
     crab::outs () << *(B.get_cfg ()) << "\n";
     switch (B.get_abs_dom ())
     {
-      case ZONES:     crab_tool.run<crab::domain_impl::zones_domain_t> (); break;
-      // case OCTAGONS: crab_tool.run<crab::domain_impl::oct_domain_t> (); break;
-      // case POLYHEDRA:crab_tool.run<crab::domain_impl::pk_domain_t> (); break;
+      case ZONES:    crab_tool.run<crab::domain_impl::zones_domain_t> (); break;
+      case OCTAGONS: crab_tool.run<crab::domain_impl::oct_domain_t> (); break;
+      case POLYHEDRA:crab_tool.run<crab::domain_impl::pk_domain_t> (); break;
       default:       crab_tool.run<crab::domain_impl::interval_domain_t> (); 
         
     }
