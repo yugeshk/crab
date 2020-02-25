@@ -2205,9 +2205,9 @@ namespace crab {
 	      return insert(new assert_t(cst, di));
       }
 
-      const statement_t* clam_print(){
-        return insert(new clam_t());
-      }
+      // const statement_t* clam_print(){
+      //   return insert(new clam_t());
+      // }
 
       const statement_t* truncate(variable_t src, variable_t dst) {
 	      return insert(new int_cast_t(CAST_TRUNC,src,dst));
