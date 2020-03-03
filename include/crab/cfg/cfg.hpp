@@ -2346,12 +2346,18 @@ namespace crab {
       }
 
 	  const statement_t* callsite(std::string func, int code){
-		  enum crab::cfg::stmt_code c = code;
+		  enum crab::cfg::stmt_code c;
+		  if (code == 90){
+			  c = CLAM_PRINT;
+		  }
 		  return insert(new callsite_t(func, c));
 	  }
 
 	  const statement_t* callsite(std::string func, const std::vector<variable_t> &args, int code){
-		  enum crab::cfg::stmt_code c = code;
+		  enum crab::cfg::stmt_code c;
+		  if(code == 91){
+			  c = CLAM_VAR_TAGS;
+		  }
 		  return insert(new callsite_t(func, args, c));
 	  }
             
