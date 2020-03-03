@@ -2344,6 +2344,14 @@ namespace crab {
       const statement_t* callsite(std::string func) { 
         return insert(new callsite_t(func));
       }
+
+	  const statement_t* callsite(std::string func, int code){
+		  return insert(new callsite_t(func, code));
+	  }
+
+	  const statement_t* callsite(std::string func, const std:vector<variable_t> &args, int code){
+		  return insert(new callsite_t(func, args, code));
+	  }
             
       const statement_t* ret(variable_t var) {
         std::vector<variable_t> ret_vals{var};
