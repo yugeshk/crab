@@ -1,44 +1,44 @@
 #pragma once 
 
 /* 
- * Build a CFG to interface with the abstract domains and fixpoint
- * iterators.
- * 
- * All the CFG statements are strongly typed. However, only variables
- * need to be typed. The types of constants can be inferred from the
- * context since they always appear together with at least one
- * variable. Types form a **flat** lattice consisting of:
- * 
- * - booleans,
- * - integers,
- * - reals, 
- * - pointers, 
- * - array of booleans,
- * - array of integers, 
- * - array of reals, and 
- * - array of pointers.
- * 
- * Crab CFG supports the modelling of:
- * 
- *   - arithmetic operations over integers or reals,
- *   - boolean operations,
- *   - C-like pointers, 
- *   - uni-dimensional arrays of booleans, integers or pointers
- *     (useful for C-like arrays and heap abstractions),
- *   - and functions 
- * 
- * Important notes: 
- * 
- * - Objects of the class cfg are not copyable. Instead, we provide a
- *   class cfg_ref that wraps cfg references into copyable and
- *   assignable objects.
- * 
- * Limitations:
- *
- * - The CFG language does not allow to express floating point
- *   operations.
- * 
- */
+* Build a CFG to interface with the abstract domains and fixpoint
+* iterators.
+* 
+* All the CFG statements are strongly typed. However, only variables
+* need to be typed. The types of constants can be inferred from the
+* context since they always appear together with at least one
+* variable. Types form a **flat** lattice consisting of:
+* 
+* - booleans,
+* - integers,
+* - reals, 
+* - pointers, 
+* - array of booleans,
+* - array of integers, 
+* - array of reals, and 
+* - array of pointers.
+* 
+* Crab CFG supports the modelling of:
+* 
+*   - arithmetic operations over integers or reals,
+*   - boolean operations,
+*   - C-like pointers, 
+*   - uni-dimensional arrays of booleans, integers or pointers
+*     (useful for C-like arrays and heap abstractions),
+*   - and functions 
+* 
+* Important notes: 
+* 
+* - Objects of the class cfg are not copyable. Instead, we provide a
+*   class cfg_ref that wraps cfg references into copyable and
+*   assignable objects.
+* 
+* Limitations:
+*
+* - The CFG language does not allow to express floating point
+*   operations.
+* 
+*/
 
 #include <boost/iterator/indirect_iterator.hpp>
 #include <boost/iterator/transform_iterator.hpp>
@@ -88,7 +88,7 @@ namespace crab {
       // casts
       INT_CAST = 80,
       // CLAM
-      CLAM_PRINT = 90,
+      CLAM_PRINT = 90, CLAM_VAR_TAGS = 91,
     }; 
     
     template<typename Number, typename VariableName>
@@ -278,6 +278,9 @@ namespace crab {
 			}
 			bool is_clam_print() const {
 				return (m_stmt_code == CLAM_PRINT);
+			}
+			bool is_clam_var_tags() const {
+				return (m_stmt_code == CLAM_VAR_TAGS);
 			}
       
 			const live_t& get_live() const { return m_live; }
@@ -1291,100 +1294,112 @@ namespace crab {
 		typedef statement<Number,VariableName> statement_t;
 		typedef ikos::variable<Number,VariableName> variable_t;
 		typedef typename variable_t::type_t type_t;
+
+		callsite_stmt(std::string func_name)
+		: statement_t(CALLSITE), m_func_name(func_name) {}
       
-      callsite_stmt(std::string func_name, const std::vector<variable_t> &args)
-	: statement_t(CALLSITE), m_func_name(func_name) {
-    	std::copy(args.begin(), args.end(), std::back_inserter(m_args));
-        for (auto arg:  m_args) { this->m_live.add_use(arg); }
-    }
-
-     callsite_stmt(std::string func_name)
-	: statement_t(CLAM_PRINT), m_func_name(func_name) {
-    }
+      	callsite_stmt(std::string func_name, const std::vector<variable_t> &args)
+		: statement_t(CALLSITE), m_func_name(func_name) {
+    		std::copy(args.begin(), args.end(), std::back_inserter(m_args));
+        	for (auto arg:  m_args) { this->m_live.add_use(arg); }
+    	}
       
-      callsite_stmt(std::string func_name,
-		    const std::vector<variable_t> &lhs, 
-		    const std::vector<variable_t> &args)
-	: statement_t(CALLSITE)
-	, m_func_name(func_name) {
-	
-        std::copy(args.begin(), args.end(), std::back_inserter(m_args));
-        for (auto arg:  m_args) { this->m_live.add_use(arg); }
+      	callsite_stmt(std::string func_name, const std::vector<variable_t> &lhs, const std::vector<variable_t> &args)
+		: statement_t(CALLSITE), m_func_name(func_name) {
+        	std::copy(args.begin(), args.end(), std::back_inserter(m_args));
+        	for (auto arg:  m_args) { this->m_live.add_use(arg); }
 
-        std::copy(lhs.begin(), lhs.end(), std::back_inserter(m_lhs));
-        for(auto arg:  m_lhs) { this->m_live.add_def(arg); }
-      }
+        	std::copy(lhs.begin(), lhs.end(), std::back_inserter(m_lhs));
+        	for(auto arg:  m_lhs) { this->m_live.add_def(arg); }
+      	}
+
+		callsite_stmt(std::string func_name, int clam_stmt_code)
+		: statement_t(clam_stmt_code), m_func_name(func_name) {}
       
-      const std::vector<variable_t>& get_lhs() const { 
-        return m_lhs;
-      }
+      	callsite_stmt(std::string func_name, const std::vector<variable_t> &args, int clam_stmt_code)
+		: statement_t(clam_stmt_code), m_func_name(func_name) {
+    		std::copy(args.begin(), args.end(), std::back_inserter(m_args));
+        	for (auto arg:  m_args) { this->m_live.add_use(arg); }
+    	}
       
-      std::string get_func_name() const { 
-        return m_func_name; 
-      }
+      	callsite_stmt(std::string func_name, const std::vector<variable_t> &lhs, const std::vector<variable_t> &args, int clam_stmt_code)
+		: statement_t(clam_stmt_code), m_func_name(func_name) {
+        	std::copy(args.begin(), args.end(), std::back_inserter(m_args));
+        	for (auto arg:  m_args) { this->m_live.add_use(arg); }
 
-      const std::vector<variable_t>& get_args() const { 
-        return m_args;
-      }
+        	std::copy(lhs.begin(), lhs.end(), std::back_inserter(m_lhs));
+        	for(auto arg:  m_lhs) { this->m_live.add_def(arg); }
+      	}
+      
+      	const std::vector<variable_t>& get_lhs() const { 
+        	return m_lhs;
+      	}
+      
+      	std::string get_func_name() const { 
+        	return m_func_name; 
+      	}
 
-      unsigned get_num_args() const { return m_args.size(); }
+      	const std::vector<variable_t>& get_args() const { 
+        	return m_args;
+      	}
 
-      variable_t get_arg_name(unsigned idx) const { 
-        if (idx >= m_args.size())
-          CRAB_ERROR("Out-of-bound access to call site parameter");
+      	unsigned get_num_args() const { return m_args.size(); }
+
+      	variable_t get_arg_name(unsigned idx) const { 
+        	if (idx >= m_args.size())
+          		CRAB_ERROR("Out-of-bound access to call site parameter");
+        	return m_args[idx];
+      	}
+      
+      	type_t get_arg_type(unsigned idx) const { 
+        	if (idx >= m_args.size())
+        		CRAB_ERROR("Out-of-bound access to call site parameter");
         
-        return m_args[idx];
-      }
+        	return m_args[idx].get_type();
+      	}
       
-      type_t get_arg_type(unsigned idx) const { 
-        if (idx >= m_args.size())
-        CRAB_ERROR("Out-of-bound access to call site parameter");
-        
-        return m_args[idx].get_type();
-      }
+      	virtual void accept(statement_visitor<Number, VariableName> *v) {
+        	v->visit(*this);
+      	}
       
-      virtual void accept(statement_visitor<Number, VariableName> *v) {
-        v->visit(*this);
-      }
-      
-      virtual statement_t* clone() const {     
-        return new this_type(m_func_name, m_lhs, m_args);
-      }
+      	virtual statement_t* clone() const {     
+        	return new this_type(m_func_name, m_lhs, m_args);
+      	}
 
-      virtual void write(crab_os& o) const {      
-        if (m_lhs.empty()) {
-          // do nothing
-        } else if (m_lhs.size() == 1) {
-          o << (*m_lhs.begin()) << " =";
-        } else {
-          o << "(";
-          for (const_iterator It = m_lhs.begin(), Et=m_lhs.end(); It!=Et; )
-          {
-            o << (*It);
-            ++It;
-            if (It != Et) o << ",";
-          }
-          o << ")=";
-        } 
-        o << " call " << m_func_name << "(";
-        for (const_iterator It = m_args.begin(), Et=m_args.end(); It!=Et; )
-        {
-          o << *It << ":" <<(*It).get_type();
-          ++It;
-          if (It != Et)
-            o << ",";
-        }
-        o << ")";        
-      }
+      	virtual void write(crab_os& o) const {      
+        	if (m_lhs.empty()) {
+          	// do nothing
+        	}
+			else if (m_lhs.size() == 1) {
+          		o << (*m_lhs.begin()) << " =";
+        	}
+			else {
+          		o << "(";
+          		for (const_iterator It = m_lhs.begin(), Et=m_lhs.end(); It!=Et; ){
+            		o << (*It);
+            		++It;
+            		if (It != Et) o << ",";
+          		}
+          		o << ")=";
+        	} 
+        	o << " call " << m_func_name << "(";
+        	for (const_iterator It = m_args.begin(), Et=m_args.end(); It!=Et; ){
+          		o << *It << ":" <<(*It).get_type();
+          		++It;
+          		if (It != Et)
+            		o << ",";
+        	}
+        	o << ")";        
+      	}
 
-    private:
+    	private:
       
-      std::string m_func_name;      
-      std::vector<variable_t> m_lhs;
-      std::vector<variable_t> m_args;
+      		std::string m_func_name;      
+      		std::vector<variable_t> m_lhs;
+      		std::vector<variable_t> m_args;
       
-      typedef typename std::vector<variable_t>::iterator iterator;
-      typedef typename std::vector<variable_t>::const_iterator const_iterator;
+      	typedef typename std::vector<variable_t>::iterator iterator;
+      	typedef typename std::vector<variable_t>::const_iterator const_iterator;
     }; 
   
     template<class Number, class VariableName>
@@ -1443,10 +1458,113 @@ namespace crab {
     };
 
 	/*
-		Clam statements
+		Clam statements - These will be custom function calls (all externed so that llvm can recognize)
+		Maybe we get around this by adding a constructor to the callsite_stmt class
 	*/
-	
 
+	// template<class Number, class VariableName>
+    // 	class clam_stmts: public statement<Number, VariableName> {
+    // 		typedef clam_stmts<Number, VariableName> this_type;
+
+	// 	public:
+	// 		typedef statement<Number,VariableName> statement_t;
+	// 		typedef ikos::variable<Number,VariableName> variable_t;
+	// 		typedef typename variable_t::type_t type_t;
+
+	// 		clam_stmts(std::string func_name, const std::vector<variable_t> &args, int clam_stmt_code)
+	// 		: statement_t(clam_stmt_code), m_func_name(func_name) {
+	// 			std::copy(args.begin(), args.end(), std::back_inserter(m_args));
+	// 			for (auto arg:  m_args) { this->m_live.add_use(arg); }
+	// 		}
+      
+	// 		clam_stmts(std::string func_name, const std::vector<variable_t> &lhs, const std::vector<variable_t> &args, int clam_stmt_code)
+	// 		: statement_t(clam_stmt_code), m_func_name(func_name) {
+	// 			std::copy(args.begin(), args.end(), std::back_inserter(m_args));
+	// 			for (auto arg:  m_args) {
+	// 				this->m_live.add_use(arg);
+	// 			}
+				
+	// 			std::copy(lhs.begin(), lhs.end(), std::back_inserter(m_lhs));
+	// 			for(auto arg:  m_lhs) {
+	// 				this->m_live.add_def(arg);
+	// 			}
+	// 		}
+      
+	// 		const std::vector<variable_t>& get_lhs() const { 
+	// 			return m_lhs;
+	// 		}
+		
+	// 		std::string get_func_name() const { 
+	// 			return m_func_name; 
+	// 		}
+
+	// 		const std::vector<variable_t>& get_args() const { 
+	// 			return m_args;
+	// 		}
+
+	// 		unsigned get_num_args() const {
+	// 			return m_args.size();
+	// 		}
+
+	// 		variable_t get_arg_name(unsigned idx) const { 
+	// 			if (idx >= m_args.size()){
+	// 				CRAB_ERROR("Out-of-bound access to call site parameter");
+	// 			}
+	// 			return m_args[idx];
+	// 		}
+		
+	// 		type_t get_arg_type(unsigned idx) const { 
+	// 			if (idx >= m_args.size()){
+	// 				CRAB_ERROR("Out-of-bound access to call site parameter");
+	// 			}
+	// 			return m_args[idx].get_type();
+	// 		}
+		
+	// 		virtual void accept(statement_visitor<Number, VariableName> *v) {
+	// 			v->visit(*this);
+	// 		}
+		
+	// 		virtual statement_t* clone() const {     
+	// 			return new this_type(m_func_name, m_lhs, m_args);
+	// 		}
+
+	// 		virtual void write(crab_os& o) const {      
+	// 			if (m_lhs.empty()) {
+	// 			// do nothing
+	// 			}
+	// 			else if (m_lhs.size() == 1) {
+	// 				o << (*m_lhs.begin()) << " =";
+	// 			}
+	// 			else{
+	// 				o << "(";
+	// 				for (const_iterator It = m_lhs.begin(), Et=m_lhs.end(); It!=Et;){
+	// 					o << (*It);
+	// 					++It;
+	// 					if (It != Et){
+	// 						o << ",";
+	// 					}
+	// 				}
+	// 				o << ")=";
+	// 			} 
+	// 			o << " call " << m_func_name << "(";
+	// 			for (const_iterator It = m_args.begin(), Et=m_args.end(); It!=Et;){
+	// 				o << *It << ":" <<(*It).get_type();
+	// 				++It;
+	// 				if (It != Et)
+	// 					o << ",";
+	// 			}
+	// 			o << ")";        
+	// 		}
+
+    // 	private:
+	// 		std::string m_func_name;      
+	// 		std::vector<variable_t> m_lhs;
+	// 		std::vector<variable_t> m_args;
+      
+    //   		typedef typename std::vector<variable_t>::iterator iterator;
+    //   		typedef typename std::vector<variable_t>::const_iterator const_iterator;
+    // }; 
+	
 
     /* 
        Boolean statements
@@ -2204,10 +2322,6 @@ namespace crab {
       const statement_t* assertion(lin_cst_t cst, debug_info di = debug_info()) {
 	      return insert(new assert_t(cst, di));
       }
-
-      // const statement_t* clam_print(){
-      //   return insert(new clam_t());
-      // }
 
       const statement_t* truncate(variable_t src, variable_t dst) {
 	      return insert(new int_cast_t(CAST_TRUNC,src,dst));
