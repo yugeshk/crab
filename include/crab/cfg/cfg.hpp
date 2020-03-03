@@ -1313,16 +1313,16 @@ namespace crab {
         	for(auto arg:  m_lhs) { this->m_live.add_def(arg); }
       	}
 
-		callsite_stmt(std::string func_name, int clam_stmt_code)
+		callsite_stmt(std::string func_name, crab::cfg::stmt_code clam_stmt_code)
 		: statement_t(clam_stmt_code), m_func_name(func_name) {}
       
-      	callsite_stmt(std::string func_name, const std::vector<variable_t> &args, int clam_stmt_code)
+      	callsite_stmt(std::string func_name, const std::vector<variable_t> &args, crab::cfg::stmt_code clam_stmt_code)
 		: statement_t(clam_stmt_code), m_func_name(func_name) {
     		std::copy(args.begin(), args.end(), std::back_inserter(m_args));
         	for (auto arg:  m_args) { this->m_live.add_use(arg); }
     	}
       
-      	callsite_stmt(std::string func_name, const std::vector<variable_t> &lhs, const std::vector<variable_t> &args, int clam_stmt_code)
+      	callsite_stmt(std::string func_name, const std::vector<variable_t> &lhs, const std::vector<variable_t> &args, crab::cfg::stmt_code clam_stmt_code)
 		: statement_t(clam_stmt_code), m_func_name(func_name) {
         	std::copy(args.begin(), args.end(), std::back_inserter(m_args));
         	for (auto arg:  m_args) { this->m_live.add_use(arg); }
