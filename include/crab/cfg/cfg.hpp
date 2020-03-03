@@ -2345,11 +2345,11 @@ namespace crab {
         return insert(new callsite_t(func));
       }
 
-	  const statement_t* callsite(std::string func, int code){
+	  const statement_t* callsite(std::string func, crab::cfg::stmt_code code){
 		  return insert(new callsite_t(func, code));
 	  }
 
-	  const statement_t* callsite(std::string func, const std::vector<variable_t> &args, int code){
+	  const statement_t* callsite(std::string func, const std::vector<variable_t> &args, crab::cfg::stmt_code code){
 		  return insert(new callsite_t(func, args, code));
 	  }
             
