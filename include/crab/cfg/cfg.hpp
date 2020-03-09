@@ -1405,10 +1405,6 @@ namespace crab {
       	typedef typename std::vector<variable_t>::iterator iterator;
       	typedef typename std::vector<variable_t>::const_iterator const_iterator;
     };
-
-    const callsite_stmt& statement::get_callsite_stmt(const statement& s){
-      return static_cast<callsite_stmt<Number, VariableName>&>(s);
-    } 
   
     template<class Number, class VariableName>
     class return_stmt: public statement<Number, VariableName> {
