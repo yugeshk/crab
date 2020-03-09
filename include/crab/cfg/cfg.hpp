@@ -88,7 +88,7 @@ namespace crab {
       // casts
       INT_CAST = 80,
       // CLAM
-      CLAM_PRINT = 90, CLAM_VAR_TAGS = 91,
+      CLAM_PRINT = 90, CLAM_VAR_TAGS = 91, CLAM_NN = 92,
     }; 
     
     template<typename Number, typename VariableName>
@@ -282,6 +282,9 @@ namespace crab {
 			bool is_clam_var_tags() const {
 				return (m_stmt_code == CLAM_VAR_TAGS);
 			}
+      bool is_clam_nn() const {
+        return (m_stmt_code == CLAM_NN);
+      }
       
 			const live_t& get_live() const { return m_live; }
 
@@ -301,7 +304,11 @@ namespace crab {
       		friend crab_os& operator<<(crab_os&o, const statement<Number,VariableName> &s) {
         		s.write(o);
         		return o;
-      		} 
+      		}
+
+      const callsite_stmt& get_callsite_stmt(const statement& s){
+        return static_cast<callsite_stmt<Number, VariableName>&>(s);
+      }
     }; 
   
     /*
@@ -1291,45 +1298,45 @@ namespace crab {
     	typedef callsite_stmt<Number, VariableName> this_type;
       
     public:
-		typedef statement<Number,VariableName> statement_t;
-		typedef ikos::variable<Number,VariableName> variable_t;
-		typedef typename variable_t::type_t type_t;
+		  typedef statement<Number,VariableName> statement_t;
+		  typedef ikos::variable<Number,VariableName> variable_t;
+		  typedef typename variable_t::type_t type_t;
 
-		callsite_stmt(std::string func_name)
-		: statement_t(CALLSITE), m_func_name(func_name) {}
+		  callsite_stmt(std::string func_name)
+		  : statement_t(CALLSITE), m_func_name(func_name) {}
       
-      	callsite_stmt(std::string func_name, const std::vector<variable_t> &args)
-		: statement_t(CALLSITE), m_func_name(func_name) {
+      callsite_stmt(std::string func_name, const std::vector<variable_t> &args)
+		  : statement_t(CALLSITE), m_func_name(func_name) {
     		std::copy(args.begin(), args.end(), std::back_inserter(m_args));
-        	for (auto arg:  m_args) { this->m_live.add_use(arg); }
+        for (auto arg:  m_args) { this->m_live.add_use(arg); }
     	}
       
-      	callsite_stmt(std::string func_name, const std::vector<variable_t> &lhs, const std::vector<variable_t> &args)
-		: statement_t(CALLSITE), m_func_name(func_name) {
+      callsite_stmt(std::string func_name, const std::vector<variable_t> &lhs, const std::vector<variable_t> &args)
+		  : statement_t(CALLSITE), m_func_name(func_name) {
         	std::copy(args.begin(), args.end(), std::back_inserter(m_args));
         	for (auto arg:  m_args) { this->m_live.add_use(arg); }
 
         	std::copy(lhs.begin(), lhs.end(), std::back_inserter(m_lhs));
         	for(auto arg:  m_lhs) { this->m_live.add_def(arg); }
-      	}
+      }
 
-		callsite_stmt(std::string func_name, crab::cfg::stmt_code clam_stmt_code)
-		: statement_t(clam_stmt_code), m_func_name(func_name) {}
+		  callsite_stmt(std::string func_name, crab::cfg::stmt_code clam_stmt_code)
+		  : statement_t(clam_stmt_code), m_func_name(func_name) {}
       
-      	callsite_stmt(std::string func_name, const std::vector<variable_t> &args, crab::cfg::stmt_code clam_stmt_code)
-		: statement_t(clam_stmt_code), m_func_name(func_name) {
+      callsite_stmt(std::string func_name, const std::vector<variable_t> &args, crab::cfg::stmt_code clam_stmt_code)
+		  : statement_t(clam_stmt_code), m_func_name(func_name) {
     		std::copy(args.begin(), args.end(), std::back_inserter(m_args));
         	for (auto arg:  m_args) { this->m_live.add_use(arg); }
     	}
       
-      	callsite_stmt(std::string func_name, const std::vector<variable_t> &lhs, const std::vector<variable_t> &args, crab::cfg::stmt_code clam_stmt_code)
-		: statement_t(clam_stmt_code), m_func_name(func_name) {
+      callsite_stmt(std::string func_name, const std::vector<variable_t> &lhs, const std::vector<variable_t> &args, crab::cfg::stmt_code clam_stmt_code)
+		  : statement_t(clam_stmt_code), m_func_name(func_name) {
         	std::copy(args.begin(), args.end(), std::back_inserter(m_args));
         	for (auto arg:  m_args) { this->m_live.add_use(arg); }
 
         	std::copy(lhs.begin(), lhs.end(), std::back_inserter(m_lhs));
         	for(auto arg:  m_lhs) { this->m_live.add_def(arg); }
-      	}
+      }
       
       	const std::vector<variable_t>& get_lhs() const { 
         	return m_lhs;
@@ -2360,6 +2367,16 @@ namespace crab {
 		  }
 		  return insert(new callsite_t(func, args, c));
 	  }
+
+    const statement_t* callsite(std::string func, 
+				  const std::vector<variable_t> &lhs, 
+				  const std::vector<variable_t> &args, int code) {
+            enum crab::cfg::stmt_code c;
+            if(code == 92){
+              c = CLAM_NN;
+            } 
+        return insert(new callsite_t(func, lhs, args, c));
+      }
             
       const statement_t* ret(variable_t var) {
         std::vector<variable_t> ret_vals{var};
