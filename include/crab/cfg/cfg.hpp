@@ -1,44 +1,44 @@
 #pragma once 
 
 /* 
- * Build a CFG to interface with the abstract domains and fixpoint
- * iterators.
- * 
- * All the CFG statements are strongly typed. However, only variables
- * need to be typed. The types of constants can be inferred from the
- * context since they always appear together with at least one
- * variable. Types form a **flat** lattice consisting of:
- * 
- * - booleans,
- * - integers,
- * - reals, 
- * - pointers, 
- * - array of booleans,
- * - array of integers, 
- * - array of reals, and 
- * - array of pointers.
- * 
- * Crab CFG supports the modelling of:
- * 
- *   - arithmetic operations over integers or reals,
- *   - boolean operations,
- *   - C-like pointers, 
- *   - uni-dimensional arrays of booleans, integers or pointers
- *     (useful for C-like arrays and heap abstractions),
- *   - and functions 
- * 
- * Important notes: 
- * 
- * - Objects of the class cfg are not copyable. Instead, we provide a
- *   class cfg_ref that wraps cfg references into copyable and
- *   assignable objects.
- * 
- * Limitations:
- *
- * - The CFG language does not allow to express floating point
- *   operations.
- * 
- */
+* Build a CFG to interface with the abstract domains and fixpoint
+* iterators.
+* 
+* All the CFG statements are strongly typed. However, only variables
+* need to be typed. The types of constants can be inferred from the
+* context since they always appear together with at least one
+* variable. Types form a **flat** lattice consisting of:
+* 
+* - booleans,
+* - integers,
+* - reals, 
+* - pointers, 
+* - array of booleans,
+* - array of integers, 
+* - array of reals, and 
+* - array of pointers.
+* 
+* Crab CFG supports the modelling of:
+* 
+*   - arithmetic operations over integers or reals,
+*   - boolean operations,
+*   - C-like pointers, 
+*   - uni-dimensional arrays of booleans, integers or pointers
+*     (useful for C-like arrays and heap abstractions),
+*   - and functions 
+* 
+* Important notes: 
+* 
+* - Objects of the class cfg are not copyable. Instead, we provide a
+*   class cfg_ref that wraps cfg references into copyable and
+*   assignable objects.
+* 
+* Limitations:
+*
+* - The CFG language does not allow to express floating point
+*   operations.
+* 
+*/
 
 #include <boost/iterator/indirect_iterator.hpp>
 #include <boost/iterator/transform_iterator.hpp>
@@ -86,7 +86,9 @@ namespace crab {
       BOOL_BIN_OP = 70, BOOL_ASSIGN_CST = 71, BOOL_ASSIGN_VAR = 72,
       BOOL_ASSUME = 73, BOOL_SELECT = 74, BOOL_ASSERT = 75,
       // casts
-      INT_CAST = 80
+      INT_CAST = 80,
+      // CLAM
+      CLAM_PRINT = 90, CLAM_VAR_TAGS = 91, CLAM_NN = 92,
     }; 
     
     template<typename Number, typename VariableName>
@@ -188,120 +190,122 @@ namespace crab {
   
     template<class Number, class VariableName>
     class statement {
+    	public:
+    		typedef live<Number, VariableName> live_t ;
       
-     public:
-      
-      typedef live<Number, VariableName> live_t ;
-      
-     protected:
-      
-      live_t m_live;
-      stmt_code m_stmt_code;
-      debug_info m_dbg_info;
+    	protected:
+			live_t m_live;
+			stmt_code m_stmt_code;
+			debug_info m_dbg_info;
 
-      statement(stmt_code code = UNDEF,
-		debug_info dbg_info = debug_info())
-	: m_stmt_code(code), 
-          m_dbg_info(dbg_info) { }
+      		statement(stmt_code code = UNDEF, debug_info dbg_info = debug_info())
+				: m_stmt_code(code), m_dbg_info(dbg_info) { }
 
-     public:
-
-      virtual ~statement() { }
+    	public:
+			virtual ~statement() { }
             
-      bool is_bin_op() const { 
-        return (m_stmt_code == BIN_OP); 
-      }
-      bool is_assign() const { 
-        return (m_stmt_code == ASSIGN); 
-      }
-      bool is_assume() const { 
-        return (m_stmt_code == ASSUME); 
-      }
-      bool is_select() const { 
-        return (m_stmt_code == SELECT); 
-      }
-      bool is_assert() const { 
-        return (m_stmt_code == ASSERT); 
-      }
-      bool is_int_cast() const { 
-        return (m_stmt_code == INT_CAST); 
-      }
-      bool is_havoc() const { 
-        return m_stmt_code == HAVOC; 
-      }
-      bool is_arr_init() const { 
-        return (m_stmt_code == ARR_INIT);
-      }      
-      bool is_arr_read() const { 
-        return (m_stmt_code == ARR_LOAD);
-      }
-      bool is_arr_write() const { 
-        return (m_stmt_code == ARR_STORE); 
-      }
-      bool is_arr_assign() const { 
-        return (m_stmt_code == ARR_ASSIGN); 
-      }
-      bool is_ptr_read() const {
-        return (m_stmt_code == PTR_LOAD); 
-      }
-      bool is_ptr_write() const { 
-        return (m_stmt_code == PTR_STORE); 
-      }
-      bool is_ptr_null() const { 
-        return (m_stmt_code == PTR_NULL); 
-      }
-      bool is_ptr_assume() const { 
-        return (m_stmt_code == PTR_ASSUME); 
-      }
-      bool is_ptr_assert() const { 
-        return (m_stmt_code == PTR_ASSERT); 
-      }
-      bool is_bool_bin_op() const { 
-        return (m_stmt_code == BOOL_BIN_OP); 
-      }
-      bool is_bool_assign_cst() const { 
-        return (m_stmt_code == BOOL_ASSIGN_CST); 
-      }
-      bool is_bool_assign_var() const { 
-        return (m_stmt_code == BOOL_ASSIGN_VAR); 
-      }      
-      bool is_bool_assume() const { 
-        return (m_stmt_code == BOOL_ASSUME); 
-      }
-      bool is_bool_assert() const { 
-        return (m_stmt_code == BOOL_ASSERT); 
-      }      
-      bool is_bool_select() const { 
-        return (m_stmt_code == BOOL_SELECT); 
-      }
-      bool is_callsite() const {
-	return(m_stmt_code == CALLSITE);
-      }
-      bool is_return() const {
-	return (m_stmt_code == RETURN);
+			bool is_bin_op() const {
+				return (m_stmt_code == BIN_OP); 
+			}
+			bool is_assign() const { 
+				return (m_stmt_code == ASSIGN); 
+			}
+			bool is_assume() const { 
+				return (m_stmt_code == ASSUME); 
+			}
+			bool is_select() const { 
+				return (m_stmt_code == SELECT); 
+			}
+			bool is_assert() const { 
+				return (m_stmt_code == ASSERT); 
+			}
+			bool is_int_cast() const { 
+				return (m_stmt_code == INT_CAST); 
+			}
+			bool is_havoc() const { 
+				return m_stmt_code == HAVOC; 
+			}
+			bool is_arr_init() const { 
+				return (m_stmt_code == ARR_INIT);
+			}      
+			bool is_arr_read() const { 
+				return (m_stmt_code == ARR_LOAD);
+			}
+			bool is_arr_write() const { 
+				return (m_stmt_code == ARR_STORE); 
+			}
+			bool is_arr_assign() const { 
+				return (m_stmt_code == ARR_ASSIGN); 
+			}
+			bool is_ptr_read() const {
+				return (m_stmt_code == PTR_LOAD); 
+			}
+			bool is_ptr_write() const { 
+				return (m_stmt_code == PTR_STORE); 
+			}
+			bool is_ptr_null() const { 
+				return (m_stmt_code == PTR_NULL); 
+			}
+			bool is_ptr_assume() const { 
+				return (m_stmt_code == PTR_ASSUME); 
+			}
+			bool is_ptr_assert() const { 
+				return (m_stmt_code == PTR_ASSERT); 
+			}
+			bool is_bool_bin_op() const { 
+				return (m_stmt_code == BOOL_BIN_OP); 
+			}
+			bool is_bool_assign_cst() const { 
+				return (m_stmt_code == BOOL_ASSIGN_CST); 
+			}
+			bool is_bool_assign_var() const { 
+				return (m_stmt_code == BOOL_ASSIGN_VAR); 
+			}      
+			bool is_bool_assume() const { 
+				return (m_stmt_code == BOOL_ASSUME); 
+			}
+			bool is_bool_assert() const { 
+				return (m_stmt_code == BOOL_ASSERT); 
+			}      
+			bool is_bool_select() const { 
+				return (m_stmt_code == BOOL_SELECT); 
+			}
+			bool is_callsite() const {
+				return(m_stmt_code == CALLSITE);
+			}
+			bool is_return() const {
+				return (m_stmt_code == RETURN);
+			}
+			bool is_clam_print() const {
+				return (m_stmt_code == CLAM_PRINT);
+			}
+			bool is_clam_var_tags() const {
+				return (m_stmt_code == CLAM_VAR_TAGS);
+			}
+      bool is_clam_nn() const {
+        return (m_stmt_code == CLAM_NN);
       }
       
-      const live_t& get_live() const { return m_live; }
+			const live_t& get_live() const { return m_live; }
 
-      const debug_info& get_debug_info() const { return m_dbg_info; }
+			const debug_info& get_debug_info() const { return m_dbg_info; }
 
-      virtual void accept(statement_visitor<Number, VariableName> *) = 0;
-      
-      virtual void write(crab_os& o) const = 0 ;
-      
-      virtual statement<Number,VariableName>* clone() const = 0;
+			virtual void accept(statement_visitor<Number, VariableName> *) = 0;
+			
+			virtual void write(crab_os& o) const = 0 ;
+			
+			virtual statement<Number,VariableName>* clone() const = 0;
 
-      // for gdb
-      void dump() const {
-	write(crab::errs());
-      }
+      		// for gdb
+      		void dump() const {
+				write(crab::errs());
+      		}
       
-      friend crab_os& operator<<(crab_os&o, 
-				 const statement<Number,VariableName> &s) {
-        s.write(o);
-        return o;
-      }
-      
+      		friend crab_os& operator<<(crab_os&o, const statement<Number,VariableName> &s) {
+        		s.write(o);
+        		return o;
+      		}
+
     }; 
   
     /*
@@ -310,185 +314,165 @@ namespace crab {
 
     template<class Number, class VariableName>
     class binary_op: public statement<Number,VariableName> {
-      typedef binary_op<Number, VariableName> this_type;
+    	typedef binary_op<Number, VariableName> this_type;
       
-     public:
+    	public:
+			typedef statement<Number,VariableName> statement_t;      
+			typedef ikos::variable<Number, VariableName> variable_t;
+			typedef ikos::linear_expression<Number, VariableName> linear_expression_t;
+      
+    		binary_op(variable_t lhs, binary_operation_t op, 
+				linear_expression_t op1, linear_expression_t op2, debug_info dbg_info = debug_info())
+  				: statement_t(BIN_OP, dbg_info), m_lhs(lhs), m_op(op), m_op1(op1), m_op2(op2) {
+        			this->m_live.add_def(m_lhs);
+        			for (auto v: m_op1.variables()){ this->m_live.add_use(v); }         
+        			for (auto v: m_op2.variables()){ this->m_live.add_use(v); }         
+      		}
+      
+    		variable_t lhs() const { return m_lhs; }
+      
+    		binary_operation_t op() const { return m_op; }
+      
+    		linear_expression_t left() const { return m_op1; }
+      
+    		linear_expression_t right() const { return m_op2; }
+      
+    		virtual void accept(statement_visitor<Number,VariableName> *v) {
+        		v->visit(*this);
+    		}
+      
+      		virtual statement_t* clone() const {
+        		return new this_type(m_lhs, m_op, m_op1, m_op2, this->m_dbg_info);
+      		}
+      
+    		virtual void write(crab_os& o) const {
+				o << m_lhs << " = " << m_op1 << m_op << m_op2;
+      		}
 
-      typedef statement<Number,VariableName> statement_t;      
-      typedef ikos::variable<Number, VariableName> variable_t;
-      typedef ikos::linear_expression<Number, VariableName> linear_expression_t;
-      
-      binary_op(variable_t lhs, 
-		binary_operation_t op, 
-		linear_expression_t op1, 
-		linear_expression_t op2,
-		debug_info dbg_info = debug_info())
-  	: statement_t(BIN_OP, dbg_info),
-	  m_lhs(lhs), m_op(op), m_op1(op1), m_op2(op2) {
-        this->m_live.add_def(m_lhs);
-        for (auto v: m_op1.variables()){ this->m_live.add_use(v); }         
-        for (auto v: m_op2.variables()){ this->m_live.add_use(v); }         
-      }
-      
-      variable_t lhs() const { return m_lhs; }
-      
-      binary_operation_t op() const { return m_op; }
-      
-      linear_expression_t left() const { return m_op1; }
-      
-      linear_expression_t right() const { return m_op2; }
-      
-      virtual void accept(statement_visitor<Number,VariableName> *v) {
-        v->visit(*this);
-      }
-      
-      virtual statement_t* clone() const {
-        return new this_type(m_lhs, m_op, m_op1, m_op2, this->m_dbg_info);
-      }
-      
-      virtual void write(crab_os& o) const {
-        o << m_lhs << " = " << m_op1 << m_op << m_op2;
-      }
-
-    private:
-      
-      variable_t          m_lhs;
-      binary_operation_t  m_op;
-      linear_expression_t m_op1;
-      linear_expression_t m_op2;
+    	private:
+		variable_t          m_lhs;
+		binary_operation_t  m_op;
+		linear_expression_t m_op1;
+		linear_expression_t m_op2;
     }; 
 
     template<class Number, class VariableName>
     class assignment: public statement<Number, VariableName> {
-      typedef assignment<Number, VariableName> this_type;
+		typedef assignment<Number, VariableName> this_type;
       
-    public:
+    	public:
+    		typedef statement<Number,VariableName> statement_t;            
+    		typedef ikos::variable<Number, VariableName> variable_t;
+    		typedef ikos::linear_expression<Number, VariableName> linear_expression_t;
+      
+    		assignment(variable_t lhs, linear_expression_t rhs)
+			: statement_t(ASSIGN), m_lhs(lhs), m_rhs(rhs) {
+        		this->m_live.add_def(m_lhs);
+        		for(auto v: m_rhs.variables()) 
+          			this->m_live.add_use(v);
+      		}
+      
+      		variable_t lhs() const { return m_lhs; }
+      
+      		linear_expression_t rhs() const { return m_rhs; }
+      
+      		virtual void accept(statement_visitor<Number, VariableName> *v) {
+        		v->visit(*this);
+      		}
+      
+      		virtual statement_t* clone() const {
+        		return new this_type(m_lhs, m_rhs);
+      		}
+      
+      		virtual void write(crab_os& o) const {
+        		o << m_lhs << " = " << m_rhs; // << " " << this->m_live;
+      		}
 
-      typedef statement<Number,VariableName> statement_t;            
-      typedef ikos::variable<Number, VariableName> variable_t;
-      typedef ikos::linear_expression<Number, VariableName> linear_expression_t;
-      
-      assignment(variable_t lhs, linear_expression_t rhs)
-	: statement_t(ASSIGN), m_lhs(lhs), m_rhs(rhs) {
-        this->m_live.add_def(m_lhs);
-        for(auto v: m_rhs.variables()) 
-          this->m_live.add_use(v);
-      }
-      
-      variable_t lhs() const { return m_lhs; }
-      
-      linear_expression_t rhs() const { return m_rhs; }
-      
-      virtual void accept(statement_visitor<Number, VariableName> *v) {
-        v->visit(*this);
-      }
-      
-      virtual statement_t* clone() const {
-        return new this_type(m_lhs, m_rhs);
-      }
-      
-      virtual void write(crab_os& o) const {
-        o << m_lhs << " = " << m_rhs; // << " " << this->m_live;
-      }
-
-     private:
-      
-      variable_t          m_lhs;
-      linear_expression_t m_rhs;
+     	private:
+      		variable_t          m_lhs;
+      		linear_expression_t m_rhs;
     }; 
     
     template<class Number, class VariableName>
     class assume_stmt: public statement<Number, VariableName> {
+    	typedef assume_stmt<Number, VariableName> this_type;
+      
+    	public:
+      		typedef statement<Number,VariableName> statement_t;                  
+      		typedef ikos::variable<Number, VariableName> variable_t;
+      		typedef ikos::linear_constraint<Number, VariableName> linear_constraint_t;
+      
+    		assume_stmt(linear_constraint_t cst) : statement_t(ASSUME), m_cst(cst) {
+        		for(auto v: cst.variables())
+          			this->m_live.add_use(v); 
+      		}
+      
+      		linear_constraint_t constraint() const { return m_cst; }
+      
+    		virtual void accept(statement_visitor<Number, VariableName> *v) {
+        		v->visit(*this);
+      		}
+      
+    		virtual statement_t* clone() const {
+        		return new this_type(m_cst);
+      		}
+      
+    		virtual void write(crab_os & o) const {
+        		o << "assume(" << m_cst << ")"; //  << " " << this->m_live;
+      		}
 
-      typedef assume_stmt<Number, VariableName> this_type;
-      
-     public:
-      
-      typedef statement<Number,VariableName> statement_t;                  
-      typedef ikos::variable<Number, VariableName> variable_t;
-      typedef ikos::linear_constraint<Number, VariableName> linear_constraint_t;
-      
-      assume_stmt(linear_constraint_t cst): 
-	statement_t(ASSUME), m_cst(cst) {
-        for(auto v: cst.variables())
-          this->m_live.add_use(v); 
-      }
-      
-      linear_constraint_t constraint() const { return m_cst; }
-      
-      virtual void accept(statement_visitor<Number, VariableName> *v) {
-        v->visit(*this);
-      }
-      
-      virtual statement_t* clone() const {
-        return new this_type(m_cst);
-      }
-      
-      virtual void write(crab_os & o) const {
-        o << "assume(" << m_cst << ")"; //  << " " << this->m_live;
-      }
-
-     private:
-      
-      linear_constraint_t m_cst;
-      
+     	private:
+      		linear_constraint_t m_cst;
     }; 
 
     template<class Number, class VariableName>
-    class unreachable_stmt: public statement<Number, VariableName>  {
-      typedef unreachable_stmt<Number, VariableName> this_type;
+    class unreachable_stmt: public statement<Number, VariableName> {
+    	typedef unreachable_stmt<Number, VariableName> this_type;
       
-     public:
-
-      typedef statement<Number,VariableName> statement_t;
+    	public:
+			typedef statement<Number,VariableName> statement_t;
+			unreachable_stmt(): statement_t(UNREACH) { }
       
-      unreachable_stmt(): statement_t(UNREACH) { }
+			virtual void accept(statement_visitor<Number, VariableName> *v) {
+				v->visit(*this);
+			}
       
-      virtual void accept(statement_visitor<Number, VariableName> *v) {
-        v->visit(*this);
-      }
-      
-      virtual statement_t* clone() const {
-        return new this_type();
-      }
-      
-      virtual void write(crab_os& o) const {
-        o << "unreachable";
-      }
-      
+			virtual statement_t* clone() const {
+				return new this_type();
+			}
+			
+			virtual void write(crab_os& o) const {
+				o << "unreachable";
+			}
     }; 
   
     template<class Number, class VariableName>
     class havoc_stmt: public statement<Number, VariableName>  {
-      typedef havoc_stmt<Number, VariableName> this_type;
-      
-     public:
+    	typedef havoc_stmt<Number, VariableName> this_type;
 
-      typedef statement<Number,VariableName> statement_t;
-      typedef ikos::variable<Number,VariableName> variable_t;
+     	public:
+      		typedef statement<Number,VariableName> statement_t;
+      		typedef ikos::variable<Number,VariableName> variable_t;
 
-      havoc_stmt(variable_t lhs): statement_t(HAVOC), m_lhs(lhs)  {
-        this->m_live.add_def(m_lhs);
-      }
-      
-      variable_t variable() const { return m_lhs; }
-      
-      virtual void accept(statement_visitor<Number, VariableName> *v) {
-        v->visit(*this);
-      }
-      
-      virtual statement_t* clone() const {
-        return new this_type(m_lhs);
-      }
-      
-      void write(crab_os& o) const {
-	o << "havoc(" << m_lhs << ")";
-      }
-
-     private:
-      
-      variable_t m_lhs;
-      
+			havoc_stmt(variable_t lhs): statement_t(HAVOC), m_lhs(lhs)  {
+				this->m_live.add_def(m_lhs);
+			}
+			
+			variable_t variable() const { return m_lhs; }
+			
+			virtual void accept(statement_visitor<Number, VariableName> *v) {
+				v->visit(*this);
+			}
+			
+			virtual statement_t* clone() const {
+				return new this_type(m_lhs);
+			}
+			
+			void write(crab_os& o) const {
+			o << "havoc(" << m_lhs << ")";
+			}
+    	private:
+      		variable_t m_lhs;
     }; 
 
     // select x, c, e1, e2:
@@ -500,146 +484,130 @@ namespace crab {
     // natively to avoid a blow up in the size of the CFG.
     template<class Number, class VariableName>
     class select_stmt: public statement<Number, VariableName> {
+		typedef select_stmt<Number, VariableName> this_type;
 
-      typedef select_stmt<Number, VariableName> this_type;
+     	public:
+			typedef statement<Number,VariableName> statement_t;      
+			typedef ikos::variable<Number, VariableName> variable_t;
+			typedef ikos::linear_expression<Number, VariableName> linear_expression_t;
+			typedef ikos::linear_constraint<Number, VariableName> linear_constraint_t;
       
-     public:
+      	select_stmt(variable_t lhs, linear_constraint_t cond, linear_expression_t e1, linear_expression_t e2)
+		:statement_t(SELECT), m_lhs(lhs), m_cond(cond), m_e1(e1), m_e2(e2) {
+        	this->m_live.add_def(m_lhs);
+        	for (auto v: m_cond.variables())
+          		this->m_live.add_use(v); 
+        	for (auto v: m_e1.variables())
+          		this->m_live.add_use(v); 
+        	for (auto v: m_e2.variables())
+          		this->m_live.add_use(v);
+		}
+      
+		variable_t lhs() const { return m_lhs; }
+		
+		linear_constraint_t cond() const { return m_cond; }
+		
+		linear_expression_t left() const { return m_e1; }
+		
+		linear_expression_t right() const { return m_e2; }
+		
+		virtual void accept(statement_visitor<Number, VariableName> *v) {
+			v->visit(*this);
+		}
+		
+		virtual statement_t* clone() const {
+			return new this_type(m_lhs, m_cond, m_e1, m_e2);
+		}
+		
+		virtual void write(crab_os& o) const {
+			o << m_lhs << " = " 
+			<< "ite(" << m_cond << "," << m_e1 << "," << m_e2 << ")";
+		}
 
-      typedef statement<Number,VariableName> statement_t;      
-      typedef ikos::variable<Number, VariableName> variable_t;
-      typedef ikos::linear_expression<Number, VariableName> linear_expression_t;
-      typedef ikos::linear_constraint<Number, VariableName> linear_constraint_t;
-      
-      select_stmt(variable_t lhs, 
-		  linear_constraint_t cond, 
-		  linear_expression_t e1, 
-		  linear_expression_t e2): 
-	statement_t(SELECT),
-	m_lhs(lhs), m_cond(cond), m_e1(e1), m_e2(e2)  {
-        this->m_live.add_def(m_lhs);
-        for (auto v: m_cond.variables())
-          this->m_live.add_use(v); 
-        for (auto v: m_e1.variables())
-          this->m_live.add_use(v); 
-        for (auto v: m_e2.variables())
-          this->m_live.add_use(v);
-      }
-      
-      variable_t lhs() const { return m_lhs; }
-      
-      linear_constraint_t cond() const { return m_cond; }
-      
-      linear_expression_t left() const { return m_e1; }
-      
-      linear_expression_t right() const { return m_e2; }
-      
-      virtual void accept(statement_visitor<Number, VariableName> *v) {
-        v->visit(*this);
-      }
-      
-      virtual statement_t* clone() const {
-        return new this_type(m_lhs, m_cond, m_e1, m_e2);
-      }
-      
-      virtual void write(crab_os& o) const {
-        o << m_lhs << " = " 
-          << "ite(" << m_cond << "," << m_e1 << "," << m_e2 << ")";
-      }
-
-    private:
-      
-      variable_t          m_lhs;
-      linear_constraint_t m_cond;
-      linear_expression_t m_e1;
-      linear_expression_t m_e2;
+		private:
+			variable_t          m_lhs;
+			linear_constraint_t m_cond;
+			linear_expression_t m_e1;
+			linear_expression_t m_e2;
     }; 
 
     template<class Number, class VariableName>
     class assert_stmt: public statement<Number, VariableName> {
-      typedef assert_stmt<Number, VariableName> this_type;
+    	typedef assert_stmt<Number, VariableName> this_type;
       
-     public:
-
-      typedef statement<Number,VariableName> statement_t;            
-      typedef ikos::variable<Number, VariableName> variable_t;
-      typedef ikos::linear_constraint<Number, VariableName> linear_constraint_t;
+     	public:
+			typedef statement<Number,VariableName> statement_t;            
+			typedef ikos::variable<Number, VariableName> variable_t;
+			typedef ikos::linear_constraint<Number, VariableName> linear_constraint_t;
                  
-      assert_stmt(linear_constraint_t cst, debug_info dbg_info = debug_info())
-	: statement_t(ASSERT, dbg_info), 
-	  m_cst(cst) {
-        for(auto v: cst.variables())
-          this->m_live.add_use(v); 
-      }
+			assert_stmt(linear_constraint_t cst, debug_info dbg_info = debug_info())
+			: statement_t(ASSERT, dbg_info), m_cst(cst) {
+				for(auto v: cst.variables())
+					this->m_live.add_use(v); 
+			}
+		
+			linear_constraint_t constraint() const { return m_cst; }
+		
+			virtual void accept(statement_visitor<Number, VariableName> *v) { 
+				v->visit(*this);
+			}
+		
+			virtual statement_t* clone() const {
+				return new this_type(m_cst, this->m_dbg_info);
+			}
+		
+			virtual void write(crab_os & o) const {
+				o << "assert(" << m_cst << ")";
+				if (this->m_dbg_info.has_debug()) {
+					o << " // line=" << this->m_dbg_info.m_line << " column=" << this->m_dbg_info.m_col;  
+				}
+			}
       
-      linear_constraint_t constraint() const { return m_cst; }
-      
-      virtual void accept(statement_visitor<Number, VariableName> *v) { 
-        v->visit(*this);
-      }
-      
-      virtual statement_t* clone() const {
-        return new this_type(m_cst, this->m_dbg_info);
-      }
-      
-      virtual void write(crab_os & o) const {
-        o << "assert(" << m_cst << ")";
-	if (this->m_dbg_info.has_debug()) {
-	  o << " // line=" << this->m_dbg_info.m_line
-	    << " column=" << this->m_dbg_info.m_col;  
-	}
-      }
-      
-     private:
-      
-      linear_constraint_t m_cst;
+     	private:
+      		linear_constraint_t m_cst;
     }; 
 
     template<class Number, class VariableName>
     class int_cast_stmt: public statement<Number,VariableName> {
-      typedef int_cast_stmt<Number, VariableName> this_type;
+    	typedef int_cast_stmt<Number, VariableName> this_type;
       
-     public:
-
-      typedef ikos::variable<Number, VariableName> variable_t;
-      typedef statement<Number,VariableName> statement_t;      
-      typedef typename variable_t::bitwidth_t bitwidth_t;
+     	public:
+      		typedef ikos::variable<Number, VariableName> variable_t;
+      		typedef statement<Number,VariableName> statement_t;      
+      		typedef typename variable_t::bitwidth_t bitwidth_t;
                  
-      int_cast_stmt(cast_operation_t op,
-		     variable_t src, variable_t dst, 
-		     debug_info dbg_info = debug_info())
-  	: statement_t(INT_CAST, dbg_info),
-	  m_op(op), m_src(src), m_dst(dst) { 
-        this->m_live.add_use(m_src);
-        this->m_live.add_def(m_dst);	
-      }
+      		int_cast_stmt(cast_operation_t op, variable_t src, variable_t dst, debug_info dbg_info = debug_info())
+  			: statement_t(INT_CAST, dbg_info), m_op(op), m_src(src), m_dst(dst) { 
+        		this->m_live.add_use(m_src);
+        		this->m_live.add_def(m_dst);	
+    		}
       
-      cast_operation_t op() const {return m_op;}
-      variable_t src() const {return m_src;}
-      bitwidth_t src_width() const {return m_src.get_bitwidth();}
-      variable_t dst() const {return m_dst;}
-      bitwidth_t dst_width() const {return m_dst.get_bitwidth();}      
+    		cast_operation_t op() const {return m_op;}
+      		variable_t src() const {return m_src;}
+      		bitwidth_t src_width() const {return m_src.get_bitwidth();}
+      		variable_t dst() const {return m_dst;}
+      		bitwidth_t dst_width() const {return m_dst.get_bitwidth();}      
       
-      virtual void accept(statement_visitor<Number,VariableName> *v) {
-        v->visit(*this);
-      }
+      		virtual void accept(statement_visitor<Number,VariableName> *v) {
+        		v->visit(*this);
+      		}
       
-      virtual statement_t* clone() const {
-        return new this_type(m_op, m_src, m_dst, this->m_dbg_info);
-      }
+      		virtual statement_t* clone() const {
+        		return new this_type(m_op, m_src, m_dst, this->m_dbg_info);
+      		}
       
-      virtual void write(crab_os& o) const {
-	// bitwidths are casted to int, otherwise operator<< may try
-	// to print them as characters if bitwidth_t = uint8_t
-	o << m_op << " " 
-	  << m_src << ":" << (int) src_width() << " to "
-	  << m_dst << ":" << (int) dst_width();
-      }
+      		virtual void write(crab_os& o) const {
+				// bitwidths are casted to int, otherwise operator<< may try
+				// to print them as characters if bitwidth_t = uint8_t
+				o << m_op << " " 
+	  			<< m_src << ":" << (int) src_width() << " to "
+	  			<< m_dst << ":" << (int) dst_width();
+      		}
 
-    private:
-      
-      cast_operation_t  m_op;
-      variable_t m_src;
-      variable_t m_dst;
+    	private:
+      		cast_operation_t  m_op;
+      		variable_t m_src;
+      		variable_t m_dst;
     }; 
 
     
@@ -668,175 +636,168 @@ namespace crab {
     //  The semantics is similar to constant arrays in SMT. 
     template<class Number, class VariableName>
     class array_init_stmt: public statement<Number, VariableName> {
-      typedef array_init_stmt<Number, VariableName> this_type;
+    	typedef array_init_stmt<Number, VariableName> this_type;
       
-     public:
-
-      typedef statement<Number,VariableName> statement_t;                  
-      typedef ikos::linear_expression<Number, VariableName> linear_expression_t;
-      typedef ikos::variable<Number, VariableName> variable_t;
-      typedef typename variable_t::type_t type_t;
+     	public:
+			typedef statement<Number,VariableName> statement_t;                  
+			typedef ikos::linear_expression<Number, VariableName> linear_expression_t;
+			typedef ikos::variable<Number, VariableName> variable_t;
+			typedef typename variable_t::type_t type_t;
                 
-      array_init_stmt(variable_t arr, linear_expression_t elem_size,
-		      linear_expression_t lb, linear_expression_t ub,
-		      linear_expression_t val)
-	: statement_t(ARR_INIT)
-	, m_arr(arr)
-	, m_elem_size(elem_size)
-	, m_lb(lb)
-	, m_ub(ub)
-	, m_val(val)  {
+      		array_init_stmt(variable_t arr, linear_expression_t elem_size, linear_expression_t lb,
+			  linear_expression_t ub, linear_expression_t val)
+			: statement_t(ARR_INIT),
+			  m_arr(arr),
+			  m_elem_size(elem_size),
+			  m_lb(lb),
+			  m_ub(ub),
+			  m_val(val) {
 	
-        this->m_live.add_def(m_arr);
-        for(auto v: m_elem_size.variables()) {
-          this->m_live.add_use(v);
-	}
-        for(auto v: m_lb.variables()) {
-          this->m_live.add_use(v);
-	}
-        for(auto v: m_ub.variables()) {
-          this->m_live.add_use(v);
-	}
-	for(auto v: m_val.variables()) {
-	  this->m_live.add_use(v);
-	}
-      }
+        	this->m_live.add_def(m_arr);
+        	for(auto v: m_elem_size.variables()) {
+          		this->m_live.add_use(v);
+			}
+        	for(auto v: m_lb.variables()) {
+          		this->m_live.add_use(v);
+			}
+        	for(auto v: m_ub.variables()) {
+          		this->m_live.add_use(v);
+			}
+			for(auto v: m_val.variables()) {
+	  			this->m_live.add_use(v);
+			}
+      	}
       
-      variable_t array() const { return m_arr; }
+      	variable_t array() const { return m_arr; }
       
-      type_t array_type() const { return m_arr.get_type(); }
+      	type_t array_type() const { return m_arr.get_type(); }
 
-      linear_expression_t elem_size() const { return m_elem_size;}
+      	linear_expression_t elem_size() const { return m_elem_size;}
        
-      linear_expression_t lb_index() const { return m_lb;}
+      	linear_expression_t lb_index() const { return m_lb;}
       
-      linear_expression_t ub_index() const { return m_ub;}
+      	linear_expression_t ub_index() const { return m_ub;}
 
-      linear_expression_t val() const { return m_val;}
+      	linear_expression_t val() const { return m_val;}
       
-      virtual void accept(statement_visitor<Number, VariableName> *v) {
-        v->visit(*this);
-      }
+      	virtual void accept(statement_visitor<Number, VariableName> *v) {
+        	v->visit(*this);
+      	}
       
-      virtual statement_t* clone() const {
-        return new this_type(m_arr, m_elem_size, m_lb, m_ub, m_val);
-      }
+      	virtual statement_t* clone() const {
+        	return new this_type(m_arr, m_elem_size, m_lb, m_ub, m_val);
+      	}
       
-      void write(crab_os& o) const {
-        o << m_arr << "[" << m_lb << "..." << m_ub << "] := " << m_val;
-      }
+      	void write(crab_os& o) const {
+        	o << m_arr << "[" << m_lb << "..." << m_ub << "] := " << m_val;
+      	}
 
-     private:
+     	private:
 
-      // forall i \in [lb,ub) % elem_size :: arr[i] := val and
-      // forall j < lb or j >= ub :: arr[j] is undefined.
-      variable_t m_arr; 
-      linear_expression_t m_elem_size; //! size in bytes
-      linear_expression_t m_lb;
-      linear_expression_t m_ub;
-      linear_expression_t m_val;
+		// forall i \in [lb,ub) % elem_size :: arr[i] := val and
+		// forall j < lb or j >= ub :: arr[j] is undefined.
+		variable_t m_arr; 
+		linear_expression_t m_elem_size; //! size in bytes
+		linear_expression_t m_lb;
+		linear_expression_t m_ub;
+		linear_expression_t m_val;
     }; 
     
     template<class Number, class VariableName>
     class array_store_stmt: public statement<Number, VariableName> {
-      typedef array_store_stmt<Number, VariableName> this_type;
+    	typedef array_store_stmt<Number, VariableName> this_type;
       
-     public:
+     	public:
+      		// forall i \in [lb,ub) % elem_size :: arr[i] := val
+			typedef statement<Number,VariableName> statement_t;                  
+			typedef ikos::linear_expression<Number, VariableName> linear_expression_t;
+			typedef ikos::variable<Number, VariableName> variable_t;
+			typedef typename variable_t::type_t type_t;
 
-      // forall i \in [lb,ub) % elem_size :: arr[i] := val
+      		// Constructor for in-place array stores
+      		array_store_stmt(variable_t arr, linear_expression_t elem_size,			
+		     linear_expression_t lb, linear_expression_t ub,		       
+		     linear_expression_t value, bool is_strong_update)
+			: statement_t(ARR_STORE),
+			  m_new_arr(boost::none),
+			  m_arr(arr),
+			  m_elem_size(elem_size),
+			  m_lb(lb),
+			  m_ub(ub),
+			  m_value(value),
+			  m_is_strong_update(is_strong_update) {
+
+				this->m_live.add_def(m_arr);
+				// XXX: should we also mark m_arr as use?
+				for(auto v: m_elem_size.variables()) {
+					this->m_live.add_use(v);
+				}
+				for(auto v: m_lb.variables()) {
+					this->m_live.add_use(v);
+				}
+				for(auto v: m_ub.variables()) {
+					this->m_live.add_use(v);
+				}	
+				for(auto v: m_value.variables()) {
+					this->m_live.add_use(v);
+				}
+			}
+
+			// Constructor for array stores that creates new array name
+			array_store_stmt(variable_t new_arr,
+					variable_t old_arr,
+					linear_expression_t elem_size,			
+					linear_expression_t lb,
+					linear_expression_t ub,		       
+					linear_expression_t value,  
+					bool is_strong_update)
+			: statement_t(ARR_STORE)
+			, m_new_arr(new_arr)
+			, m_arr(old_arr)
+			, m_elem_size(elem_size)
+			, m_lb(lb)
+			, m_ub(ub)
+			, m_value(value)
+			, m_is_strong_update(is_strong_update) {
+
+			this->m_live.add_def(*m_new_arr);
+			this->m_live.add_use(m_arr);	
+				for(auto v: m_elem_size.variables()) {
+				this->m_live.add_use(v);
+			}
+			for(auto v: m_lb.variables()) {
+				this->m_live.add_use(v);
+			}
+			for(auto v: m_ub.variables()) {
+				this->m_live.add_use(v);
+			}	
+			for(auto v: m_value.variables()) {
+			this->m_live.add_use(v);
+			}
+		}
       
-      typedef statement<Number,VariableName> statement_t;                  
-      typedef ikos::linear_expression<Number, VariableName> linear_expression_t;
-      typedef ikos::variable<Number, VariableName> variable_t;
-      typedef typename variable_t::type_t type_t;
+			// Return the new array name after the store
+			boost::optional<variable_t> new_array() const { return m_new_arr; }
 
-      // Constructor for in-place array stores
-      array_store_stmt(variable_t arr,
-		       linear_expression_t elem_size,			
-		       linear_expression_t lb,
-		       linear_expression_t ub,		       
-		       linear_expression_t value,  
-		       bool is_strong_update)
-	: statement_t(ARR_STORE)
-	, m_new_arr(boost::none)
-	, m_arr(arr)
-	, m_elem_size(elem_size)
-	, m_lb(lb)
-	, m_ub(ub)
-	, m_value(value)
-	, m_is_strong_update(is_strong_update) {
+			// Return the old array name before the store or the current
+			// array name if the store happens in-place.
+			variable_t array() const { return m_arr; }
+			
+			linear_expression_t lb_index() const { return m_lb; }
 
-	this->m_live.add_def(m_arr);
-	// XXX: should we also mark m_arr as use?
-        for(auto v: m_elem_size.variables()) {
-          this->m_live.add_use(v);
-	}
-	for(auto v: m_lb.variables()) {
-          this->m_live.add_use(v);
-	}
-	for(auto v: m_ub.variables()) {
-          this->m_live.add_use(v);
-	}	
-	for(auto v: m_value.variables()) {
-	  this->m_live.add_use(v);
-	}
-      }
+			linear_expression_t ub_index() const { return m_ub; }      
+			
+			linear_expression_t value() const { return m_value; }
+			
+			type_t array_type() const { return m_arr.get_type(); }
 
-      // Constructor for array stores that creates new array name
-      array_store_stmt(variable_t new_arr,
-		       variable_t old_arr,
-		       linear_expression_t elem_size,			
-		       linear_expression_t lb,
-		       linear_expression_t ub,		       
-		       linear_expression_t value,  
-		       bool is_strong_update)
-	: statement_t(ARR_STORE)
-	, m_new_arr(new_arr)
-	, m_arr(old_arr)
-	, m_elem_size(elem_size)
-	, m_lb(lb)
-	, m_ub(ub)
-	, m_value(value)
-	, m_is_strong_update(is_strong_update) {
-
-	this->m_live.add_def(*m_new_arr);
-	this->m_live.add_use(m_arr);	
-        for(auto v: m_elem_size.variables()) {
-          this->m_live.add_use(v);
-	}
-	for(auto v: m_lb.variables()) {
-          this->m_live.add_use(v);
-	}
-	for(auto v: m_ub.variables()) {
-          this->m_live.add_use(v);
-	}	
-	for(auto v: m_value.variables()) {
-	  this->m_live.add_use(v);
-	}
-      }
-      
-      // Return the new array name after the store
-      boost::optional<variable_t> new_array() const { return m_new_arr; }
-
-      // Return the old array name before the store or the current
-      // array name if the store happens in-place.
-      variable_t array() const { return m_arr; }
-      
-      linear_expression_t lb_index() const { return m_lb; }
-
-      linear_expression_t ub_index() const { return m_ub; }      
-      
-      linear_expression_t value() const { return m_value; }
-      
-      type_t array_type() const { return m_arr.get_type(); }
-
-      linear_expression_t elem_size() const { return m_elem_size; }
-      
-      bool is_strong_update() const { return m_is_strong_update;}
-      
-      virtual void accept(statement_visitor<Number, VariableName> *v) {
-        v->visit(*this);
-      }
+			linear_expression_t elem_size() const { return m_elem_size; }
+			
+			bool is_strong_update() const { return m_is_strong_update;}
+			
+			virtual void accept(statement_visitor<Number, VariableName> *v) {
+				v->visit(*this);
+			}
       
       virtual statement_t* clone() const {
 	if (m_new_arr) {
@@ -1331,106 +1292,119 @@ namespace crab {
   
     template<class Number, class VariableName>
     class callsite_stmt: public statement<Number, VariableName> {
-      typedef callsite_stmt<Number, VariableName> this_type;
+    	typedef callsite_stmt<Number, VariableName> this_type;
       
-     public:
+    public:
+		  typedef statement<Number,VariableName> statement_t;
+		  typedef ikos::variable<Number,VariableName> variable_t;
+		  typedef typename variable_t::type_t type_t;
 
-      typedef statement<Number,VariableName> statement_t;
-      typedef ikos::variable<Number,VariableName> variable_t;
-      typedef typename variable_t::type_t type_t;
+		  callsite_stmt(std::string func_name)
+		  : statement_t(CALLSITE), m_func_name(func_name) {}
       
       callsite_stmt(std::string func_name, const std::vector<variable_t> &args)
-	: statement_t(CALLSITE)
-	, m_func_name(func_name) {
-	
-        std::copy(args.begin(), args.end(), std::back_inserter(m_args));
+		  : statement_t(CALLSITE), m_func_name(func_name) {
+    		std::copy(args.begin(), args.end(), std::back_inserter(m_args));
         for (auto arg:  m_args) { this->m_live.add_use(arg); }
+    	}
+      
+      callsite_stmt(std::string func_name, const std::vector<variable_t> &lhs, const std::vector<variable_t> &args)
+		  : statement_t(CALLSITE), m_func_name(func_name) {
+        	std::copy(args.begin(), args.end(), std::back_inserter(m_args));
+        	for (auto arg:  m_args) { this->m_live.add_use(arg); }
+
+        	std::copy(lhs.begin(), lhs.end(), std::back_inserter(m_lhs));
+        	for(auto arg:  m_lhs) { this->m_live.add_def(arg); }
+      }
+
+		  callsite_stmt(std::string func_name, crab::cfg::stmt_code clam_stmt_code)
+		  : statement_t(clam_stmt_code), m_func_name(func_name) {}
+      
+      callsite_stmt(std::string func_name, const std::vector<variable_t> &args, crab::cfg::stmt_code clam_stmt_code)
+		  : statement_t(clam_stmt_code), m_func_name(func_name) {
+    		std::copy(args.begin(), args.end(), std::back_inserter(m_args));
+        	for (auto arg:  m_args) { this->m_live.add_use(arg); }
+    	}
+      
+      callsite_stmt(std::string func_name, const std::vector<variable_t> &lhs, const std::vector<variable_t> &args, crab::cfg::stmt_code clam_stmt_code)
+		  : statement_t(clam_stmt_code), m_func_name(func_name) {
+        	std::copy(args.begin(), args.end(), std::back_inserter(m_args));
+        	for (auto arg:  m_args) { this->m_live.add_use(arg); }
+
+        	std::copy(lhs.begin(), lhs.end(), std::back_inserter(m_lhs));
+        	for(auto arg:  m_lhs) { this->m_live.add_def(arg); }
       }
       
-      callsite_stmt(std::string func_name,
-		    const std::vector<variable_t> &lhs, 
-		    const std::vector<variable_t> &args)
-	: statement_t(CALLSITE)
-	, m_func_name(func_name) {
-	
-        std::copy(args.begin(), args.end(), std::back_inserter(m_args));
-        for (auto arg:  m_args) { this->m_live.add_use(arg); }
-
-        std::copy(lhs.begin(), lhs.end(), std::back_inserter(m_lhs));
-        for(auto arg:  m_lhs) { this->m_live.add_def(arg); }
-      }
+      	const std::vector<variable_t>& get_lhs() const { 
+        	return m_lhs;
+      	}
       
-      const std::vector<variable_t>& get_lhs() const { 
-        return m_lhs;
-      }
+      	std::string get_func_name() const { 
+        	return m_func_name; 
+      	}
+
+      	const std::vector<variable_t>& get_args() const { 
+        	return m_args;
+      	}
+
+      	unsigned get_num_args() const { return m_args.size(); }
+
+      	variable_t get_arg_name(unsigned idx) const { 
+        	if (idx >= m_args.size())
+          		CRAB_ERROR("Out-of-bound access to call site parameter");
+        	return m_args[idx];
+      	}
       
-      std::string get_func_name() const { 
-        return m_func_name; 
-      }
-
-      const std::vector<variable_t>& get_args() const { 
-        return m_args;
-      }
-
-      unsigned get_num_args() const { return m_args.size(); }
-
-      variable_t get_arg_name(unsigned idx) const { 
-        if (idx >= m_args.size())
-          CRAB_ERROR("Out-of-bound access to call site parameter");
+      	type_t get_arg_type(unsigned idx) const { 
+        	if (idx >= m_args.size())
+        		CRAB_ERROR("Out-of-bound access to call site parameter");
         
-        return m_args[idx];
-      }
+        	return m_args[idx].get_type();
+      	}
       
-      type_t get_arg_type(unsigned idx) const { 
-        if (idx >= m_args.size())
-        CRAB_ERROR("Out-of-bound access to call site parameter");
-        
-        return m_args[idx].get_type();
-      }
+      	virtual void accept(statement_visitor<Number, VariableName> *v) {
+        	v->visit(*this);
+      	}
       
-      virtual void accept(statement_visitor<Number, VariableName> *v) {
-        v->visit(*this);
-      }
-      
-      virtual statement_t* clone() const {     
-        return new this_type(m_func_name, m_lhs, m_args);
-      }
+      	virtual statement_t* clone() const {     
+        	return new this_type(m_func_name, m_lhs, m_args);
+      	}
 
-      virtual void write(crab_os& o) const {      
-        if (m_lhs.empty()) {
-          // do nothing
-        } else if (m_lhs.size() == 1) {
-          o << (*m_lhs.begin()) << " =";
-        } else {
-          o << "(";
-          for (const_iterator It = m_lhs.begin(), Et=m_lhs.end(); It!=Et; )
-          {
-            o << (*It);
-            ++It;
-            if (It != Et) o << ",";
-          }
-          o << ")=";
-        } 
-        o << " call " << m_func_name << "(";
-        for (const_iterator It = m_args.begin(), Et=m_args.end(); It!=Et; )
-        {
-          o << *It << ":" <<(*It).get_type();
-          ++It;
-          if (It != Et)
-            o << ",";
-        }
-        o << ")";        
-      }
+      	virtual void write(crab_os& o) const {      
+        	if (m_lhs.empty()) {
+          	// do nothing
+        	}
+			else if (m_lhs.size() == 1) {
+          		o << (*m_lhs.begin()) << " =";
+        	}
+			else {
+          		o << "(";
+          		for (const_iterator It = m_lhs.begin(), Et=m_lhs.end(); It!=Et; ){
+            		o << (*It);
+            		++It;
+            		if (It != Et) o << ",";
+          		}
+          		o << ")=";
+        	} 
+        	o << " call " << m_func_name << "(";
+        	for (const_iterator It = m_args.begin(), Et=m_args.end(); It!=Et; ){
+          		o << *It << ":" <<(*It).get_type();
+          		++It;
+          		if (It != Et)
+            		o << ",";
+        	}
+        	o << ")";        
+      	}
 
-    private:
+    	private:
       
-      std::string m_func_name;      
-      std::vector<variable_t> m_lhs;
-      std::vector<variable_t> m_args;
+      		std::string m_func_name;      
+      		std::vector<variable_t> m_lhs;
+      		std::vector<variable_t> m_args;
       
-      typedef typename std::vector<variable_t>::iterator iterator;
-      typedef typename std::vector<variable_t>::const_iterator const_iterator;
-    }; 
+      	typedef typename std::vector<variable_t>::iterator iterator;
+      	typedef typename std::vector<variable_t>::const_iterator const_iterator;
+    };
   
     template<class Number, class VariableName>
     class return_stmt: public statement<Number, VariableName> {
@@ -1485,7 +1459,116 @@ namespace crab {
      private:
       
       std::vector<variable_t> m_ret;
-    }; 
+    };
+
+	/*
+		Clam statements - These will be custom function calls (all externed so that llvm can recognize)
+		Maybe we get around this by adding a constructor to the callsite_stmt class
+	*/
+
+	// template<class Number, class VariableName>
+    // 	class clam_stmts: public statement<Number, VariableName> {
+    // 		typedef clam_stmts<Number, VariableName> this_type;
+
+	// 	public:
+	// 		typedef statement<Number,VariableName> statement_t;
+	// 		typedef ikos::variable<Number,VariableName> variable_t;
+	// 		typedef typename variable_t::type_t type_t;
+
+	// 		clam_stmts(std::string func_name, const std::vector<variable_t> &args, int clam_stmt_code)
+	// 		: statement_t(clam_stmt_code), m_func_name(func_name) {
+	// 			std::copy(args.begin(), args.end(), std::back_inserter(m_args));
+	// 			for (auto arg:  m_args) { this->m_live.add_use(arg); }
+	// 		}
+      
+	// 		clam_stmts(std::string func_name, const std::vector<variable_t> &lhs, const std::vector<variable_t> &args, int clam_stmt_code)
+	// 		: statement_t(clam_stmt_code), m_func_name(func_name) {
+	// 			std::copy(args.begin(), args.end(), std::back_inserter(m_args));
+	// 			for (auto arg:  m_args) {
+	// 				this->m_live.add_use(arg);
+	// 			}
+				
+	// 			std::copy(lhs.begin(), lhs.end(), std::back_inserter(m_lhs));
+	// 			for(auto arg:  m_lhs) {
+	// 				this->m_live.add_def(arg);
+	// 			}
+	// 		}
+      
+	// 		const std::vector<variable_t>& get_lhs() const { 
+	// 			return m_lhs;
+	// 		}
+		
+	// 		std::string get_func_name() const { 
+	// 			return m_func_name; 
+	// 		}
+
+	// 		const std::vector<variable_t>& get_args() const { 
+	// 			return m_args;
+	// 		}
+
+	// 		unsigned get_num_args() const {
+	// 			return m_args.size();
+	// 		}
+
+	// 		variable_t get_arg_name(unsigned idx) const { 
+	// 			if (idx >= m_args.size()){
+	// 				CRAB_ERROR("Out-of-bound access to call site parameter");
+	// 			}
+	// 			return m_args[idx];
+	// 		}
+		
+	// 		type_t get_arg_type(unsigned idx) const { 
+	// 			if (idx >= m_args.size()){
+	// 				CRAB_ERROR("Out-of-bound access to call site parameter");
+	// 			}
+	// 			return m_args[idx].get_type();
+	// 		}
+		
+	// 		virtual void accept(statement_visitor<Number, VariableName> *v) {
+	// 			v->visit(*this);
+	// 		}
+		
+	// 		virtual statement_t* clone() const {     
+	// 			return new this_type(m_func_name, m_lhs, m_args);
+	// 		}
+
+	// 		virtual void write(crab_os& o) const {      
+	// 			if (m_lhs.empty()) {
+	// 			// do nothing
+	// 			}
+	// 			else if (m_lhs.size() == 1) {
+	// 				o << (*m_lhs.begin()) << " =";
+	// 			}
+	// 			else{
+	// 				o << "(";
+	// 				for (const_iterator It = m_lhs.begin(), Et=m_lhs.end(); It!=Et;){
+	// 					o << (*It);
+	// 					++It;
+	// 					if (It != Et){
+	// 						o << ",";
+	// 					}
+	// 				}
+	// 				o << ")=";
+	// 			} 
+	// 			o << " call " << m_func_name << "(";
+	// 			for (const_iterator It = m_args.begin(), Et=m_args.end(); It!=Et;){
+	// 				o << *It << ":" <<(*It).get_type();
+	// 				++It;
+	// 				if (It != Et)
+	// 					o << ",";
+	// 			}
+	// 			o << ")";        
+	// 		}
+
+    // 	private:
+	// 		std::string m_func_name;      
+	// 		std::vector<variable_t> m_lhs;
+	// 		std::vector<variable_t> m_args;
+      
+    //   		typedef typename std::vector<variable_t>::iterator iterator;
+    //   		typedef typename std::vector<variable_t>::const_iterator const_iterator;
+    // }; 
+	
 
     /* 
        Boolean statements
@@ -1840,6 +1923,7 @@ namespace crab {
       typedef bool_assume_stmt<Number,VariableName>   bool_assume_t;
       typedef bool_select_stmt<Number,VariableName>   bool_select_t;
       typedef bool_assert_stmt<Number,VariableName>   bool_assert_t;
+      //Custom Functions
 
     private:      
       
@@ -2240,25 +2324,55 @@ namespace crab {
       }
 
       const statement_t* assertion(lin_cst_t cst, debug_info di = debug_info()) {
-	return insert(new assert_t(cst, di));
+	      return insert(new assert_t(cst, di));
       }
 
       const statement_t* truncate(variable_t src, variable_t dst) {
-	return insert(new int_cast_t(CAST_TRUNC,src,dst));
+	      return insert(new int_cast_t(CAST_TRUNC,src,dst));
       }
       
       const statement_t* sext(variable_t src, variable_t dst) {
-	return insert(new int_cast_t(CAST_SEXT,src,dst));
+	      return insert(new int_cast_t(CAST_SEXT,src,dst));
       }
 
       const statement_t* zext(variable_t src, variable_t dst) {
-	return insert(new int_cast_t(CAST_ZEXT,src,dst));
+	      return insert(new int_cast_t(CAST_ZEXT,src,dst));
       }
       
       const statement_t* callsite(std::string func, 
 				  const std::vector<variable_t> &lhs, 
 				  const std::vector<variable_t> &args) { 
         return insert(new callsite_t(func, lhs, args));
+      }
+
+      const statement_t* callsite(std::string func) { 
+        return insert(new callsite_t(func));
+      }
+
+	  const statement_t* callsite(std::string func, int code){
+		  enum crab::cfg::stmt_code c;
+		  if (code == 90){
+			  c = CLAM_PRINT;
+		  }
+		  return insert(new callsite_t(func, c));
+	  }
+
+	  const statement_t* callsite(std::string func, const std::vector<variable_t> &args, int code){
+		  enum crab::cfg::stmt_code c;
+		  if(code == 91){
+			  c = CLAM_VAR_TAGS;
+		  }
+		  return insert(new callsite_t(func, args, c));
+	  }
+
+    const statement_t* callsite(std::string func, 
+				  const std::vector<variable_t> &lhs, 
+				  const std::vector<variable_t> &args, int code) {
+            enum crab::cfg::stmt_code c;
+            if(code == 92){
+              c = CLAM_NN;
+            } 
+        return insert(new callsite_t(func, lhs, args, c));
       }
             
       const statement_t* ret(variable_t var) {

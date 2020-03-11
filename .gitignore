@@ -9,3 +9,5 @@
 /GTAGS
 *.pyc
 *.pyo
+.vscode
+dockercp.sh
