@@ -397,125 +397,118 @@ namespace crab {
 	    live, widening_delay, descending_iters, jump_set_size);
       }
       
-      void run(bb_label_t entry, // only used for the forward pass.
-	       AbsDom init_states,
-	       // behaves as a standard forward analysis
-	       bool only_forward,
-	       // assumptions
-	       const assumption_map_t &assumptions,
-	       // liveness information
-	       const liveness_t* live, 
-	       // parameters for each forward or backward analysis
-	       unsigned int widening_delay=1,
-	       unsigned int descending_iters=UINT_MAX,
-	       size_t jump_set_size=0) {
+    void run(bb_label_t entry, // only used for the forward pass.
+	AbsDom init_states,
+	// behaves as a standard forward analysis
+	bool only_forward,
+	// assumptions
+	const assumption_map_t &assumptions,
+	// liveness information
+	const liveness_t* live, 
+	// parameters for each forward or backward analysis
+	unsigned int widening_delay=1,
+	unsigned int descending_iters=UINT_MAX,
+	size_t jump_set_size=0) {
 	
-	CRAB_LOG("backward",
-		  crab::outs() << "Initial states=" << init_states << "\n");
+		CRAB_LOG("backward",crab::outs() << "Initial states=" << init_states << "\n");
 
-	if (!only_forward && !m_cfg.has_exit()) {
-	  CRAB_WARN("cannot run backward analysis because CFG has no exit block");
-	  only_forward = true;
-	}
+		if (!only_forward && !m_cfg.has_exit()) {
+	  		CRAB_WARN("cannot run backward analysis because CFG has no exit block");
+	  		only_forward = true;
+		}
 	
-	crab::CrabStats::count("CombinedForwardBackward.invocations");
+		crab::CrabStats::count("CombinedForwardBackward.invocations");
 
-	// maximum number of refinement iterations
-	const unsigned max_num_iters = 5;
-	// number of refinement iterations
-	unsigned iters = 0;
-	// CFG assertions
-	std::vector<std::pair<bb_label_t, stmt_t*>> assertions;
-	// immediate dominance tree
-	idom_tree_t idom_tree;	
+		// maximum number of refinement iterations
+		const unsigned max_num_iters = 5;
+		// number of refinement iterations
+		unsigned iters = 0;
+		// CFG assertions
+		std::vector<std::pair<bb_label_t, stmt_t*>> assertions;
+		// immediate dominance tree
+		idom_tree_t idom_tree;	
 
-	crab::CrabStats::resume("CombinedForwardBackward.GatherAssertions");
-	gather_assertions();
-	CRAB_LOG("backward",
-		 crab::outs() << "Found " << m_unproven_assertions.size() << " assertions.\n";);
-	crab::CrabStats::stop("CombinedForwardBackward.GatherAssertions");	
+		crab::CrabStats::resume("CombinedForwardBackward.GatherAssertions");
+		gather_assertions();
+		CRAB_LOG("backward", crab::outs() << "Found " << m_unproven_assertions.size() << " assertions.\n";);
+		crab::CrabStats::stop("CombinedForwardBackward.GatherAssertions");	
 
-	if (!m_unproven_assertions.empty() && !only_forward) {
-	  crab::CrabStats::resume("CombinedForwardBackward.DominatorTree");
-	  std::unordered_map<bb_label_t, bb_label_t> idom_map;
-	  crab::analyzer::graph_algo::dominator_tree(m_cfg, m_cfg.entry(), idom_map);
-	  // build idom_tree
-	  for (auto &kv: idom_map) {
-	    if (kv.second == boost::graph_traits<CFG>::null_vertex()) {
-	      continue;
-	    }
-	    auto it = idom_tree.find(kv.second);
-	    if (it == idom_tree.end()) {
-	      std::set<bb_label_t> reachable({kv.first});
-	      idom_tree.insert({kv.second, reachable});
-	    } else {
-	      it->second.insert(kv.first);
-	    }
-	  }
+		if (!m_unproven_assertions.empty() && !only_forward) {
+	  		crab::CrabStats::resume("CombinedForwardBackward.DominatorTree");
+	  		std::unordered_map<bb_label_t, bb_label_t> idom_map;
+	  		crab::analyzer::graph_algo::dominator_tree(m_cfg, m_cfg.entry(), idom_map);
+	  		// build idom_tree
+	  		for (auto &kv: idom_map) {
+	    		if (kv.second == boost::graph_traits<CFG>::null_vertex()) {
+	      			continue;
+	    		}
+	    		auto it = idom_tree.find(kv.second);
+	    		if (it == idom_tree.end()) {
+	      			std::set<bb_label_t> reachable({kv.first});
+	      			idom_tree.insert({kv.second, reachable});
+	    		}
+				else {
+	      			it->second.insert(kv.first);
+	    		}
+	  		}
 	  
-	  CRAB_LOG("backward",
-		   crab::outs() << "Computed dominance tree:\n";
-		   for(auto &kv: idom_tree) {
-		     crab::outs () << "\t" << cfg_impl::get_label_str(kv.first)
-				   << " dominates={";
-		     for (auto d: kv.second) {
-		       crab::outs() << d << ";";
-		     }
-		     crab::outs() << "}\n";
-		   });
-	  crab::CrabStats::stop("CombinedForwardBackward.DominatorTree");
-	}
+	  		CRAB_LOG("backward", crab::outs() << "Computed dominance tree:\n";
+		   		for(auto &kv: idom_tree) {
+		     		crab::outs () << "\t" << cfg_impl::get_label_str(kv.first) << " dominates={";
+		     		for (auto d: kv.second) {
+		       			crab::outs() << d << ";";
+		     		}
+		     		crab::outs() << "}\n";
+		   		});
+	  		crab::CrabStats::stop("CombinedForwardBackward.DominatorTree");
+		}
 	
-	assumption_map_t refined_assumptions(assumptions.begin(), assumptions.end());
-	while (true) {
-	  iters++;
-          crab::CrabStats::count("CombinedForwardBackward.iterations");
-	  CRAB_VERBOSE_IF(1, get_msg_stream() << "Iteration " << iters << "\n" 
-			                  << "Started forward analysis.\n";);
+		assumption_map_t refined_assumptions(assumptions.begin(), assumptions.end());
+		while (true) {
+	  		iters++;
+          	crab::CrabStats::count("CombinedForwardBackward.iterations");
+	  		CRAB_VERBOSE_IF(1, get_msg_stream() << "Iteration " << iters << "\n" << "Started forward analysis.\n";);
 
-	  crab::CrabStats::resume("CombinedForwardBackward.ForwardPass");
-	  // run forward analysis refined with preconditions from error states
-	  fwd_analyzer_t F(m_cfg, init_states, live, m_wto, 
-			   widening_delay, descending_iters, jump_set_size);
-	  F.run(entry, refined_assumptions);
+	  		crab::CrabStats::resume("CombinedForwardBackward.ForwardPass");
+	  		// run forward analysis refined with preconditions from error states
+	  		fwd_analyzer_t F(m_cfg, init_states, live, m_wto, widening_delay, descending_iters, jump_set_size);
+	  		F.run(entry, refined_assumptions);
 
-	  if (iters == 1) {
-	    store_analysis_results(F);
-	  }
-	  crab::CrabStats::stop("CombinedForwardBackward.ForwardPass");
+	  		if (iters == 1) {
+	    		store_analysis_results(F);
+	  		}
+	  		crab::CrabStats::stop("CombinedForwardBackward.ForwardPass");
 	  
-	  CRAB_VERBOSE_IF(1, get_msg_stream() << "Finished forward analysis.\n";);
+	  		CRAB_VERBOSE_IF(1, get_msg_stream() << "Finished forward analysis.\n";);
 	  
-	  CRAB_LOG("backward",
-		   crab::outs() << "Forward analysis: \n";
-		   for (auto &kv: boost::make_iterator_range(F.pre_begin(), F.pre_end())) {
-		     crab::outs () << cfg_impl::get_label_str(kv.first)
-				   << ":\n" << kv.second << "\n";
-		   }
-		   crab::outs() << "\n";);
+	  		CRAB_LOG("backward", crab::outs() << "Forward analysis: \n";
+		   		for (auto &kv: boost::make_iterator_range(F.pre_begin(), F.pre_end())) {
+		     		crab::outs () << cfg_impl::get_label_str(kv.first) << ":\n" << kv.second << "\n";
+		   		}
+		   	crab::outs() << "\n";);
 
 	  
-	  if (only_forward) {
-	    CRAB_VERBOSE_IF(1, get_msg_stream() << "\nSkipped backward refinement.\n";);
-	    break;
-	  } else if (m_unproven_assertions.empty()) {
-	    CRAB_VERBOSE_IF(1,
-	       get_msg_stream() << "\nNo assertions found: skipped backward refinement.\n";);
-	    break;
-	  }
+	  		if (only_forward) {
+	    		CRAB_VERBOSE_IF(1, get_msg_stream() << "\nSkipped backward refinement.\n";);
+	    		break;
+	  		}
+			else if (m_unproven_assertions.empty()) {
+	    		CRAB_VERBOSE_IF(1, get_msg_stream() << "\nNo assertions found: skipped backward refinement.\n";);
+	    		break;
+	  		}
 
-	  // reuse wto for next iteration
-	  if (iters == 1) {
-	    m_wto = new wto_t(F.get_wto());
-	  }
+	  		// reuse wto for next iteration
+	  		if (iters == 1) {
+	    		m_wto = new wto_t(F.get_wto());
+	  		}
 	  
-	  CRAB_VERBOSE_IF(1, get_msg_stream() << "Started backward analysis.\n";);
+	  		CRAB_VERBOSE_IF(1, get_msg_stream() << "Started backward analysis.\n";);
 
-	  crab::CrabStats::resume("CombinedForwardBackward.BackwardPass");
-	  // run backward analysis computing necessary preconditions
-	  // refined with results from the forward analysis.	  
-	  AbsDom final_states = AbsDom::bottom();
-	  bwd_fixpoint_iterator_t B(m_cfg, m_b_wto,
+	  		crab::CrabStats::resume("CombinedForwardBackward.BackwardPass");
+	  		// run backward analysis computing necessary preconditions
+	  		// refined with results from the forward analysis.	  
+	  		AbsDom final_states = AbsDom::bottom();
+	  		bwd_fixpoint_iterator_t B(m_cfg, m_b_wto,
 				    // A final state is safe so here means bottom
 				    final_states,
 				    // negate assertions:
@@ -523,74 +516,68 @@ namespace crab {
 				    false, 
 				    widening_delay, descending_iters, jump_set_size);
 
-	  const invariant_map_t& fwd_invariants = F.get_pre_invariants();
-	  crab::CrabStats::resume("CombinedForwardBackward.MinimizeInvariants");	  
-	  // Important for apron and elina domains.
-	  invariant_map_t minimized_fwd_invariants;
-	  for(auto &kv: fwd_invariants) {
-	    AbsDom dom(kv.second);
-	    dom.minimize();
-	    minimized_fwd_invariants.insert({kv.first, dom});
-	  }
-	  crab::CrabStats::stop("CombinedForwardBackward.MinimizeInvariants");
-	  B.run_backward(minimized_fwd_invariants);
-	  crab::CrabStats::stop("CombinedForwardBackward.BackwardPass"); 
+			const invariant_map_t& fwd_invariants = F.get_pre_invariants();
+	  		crab::CrabStats::resume("CombinedForwardBackward.MinimizeInvariants");	  
+	  		// Important for apron and elina domains.
+	  		invariant_map_t minimized_fwd_invariants;
+	  		for(auto &kv: fwd_invariants) {
+	    		AbsDom dom(kv.second);
+	    		dom.minimize();
+	    		minimized_fwd_invariants.insert({kv.first, dom});
+	  		}
+	  		crab::CrabStats::stop("CombinedForwardBackward.MinimizeInvariants");
+	  		B.run_backward(minimized_fwd_invariants);
+	  		crab::CrabStats::stop("CombinedForwardBackward.BackwardPass"); 
 
-	  CRAB_VERBOSE_IF(1, get_msg_stream() << "Finished backward analysis.\n";);
+	  		CRAB_VERBOSE_IF(1, get_msg_stream() << "Finished backward analysis.\n";);
 	  
-	  CRAB_LOG("backward", 
-		crab::outs() << "Backward analysis:\n";
-		for (auto &kv: boost::make_iterator_range(B.begin(), B.end())) {
-		  crab::outs() << cfg_impl::get_label_str(kv.first)
-			       << ":\n" << kv.second << "\n";
-		}
-		crab::outs() << "\n");
+	  		CRAB_LOG("backward", 
+				crab::outs() << "Backward analysis:\n";
+				for (auto &kv: boost::make_iterator_range(B.begin(), B.end())) {
+		  			crab::outs() << cfg_impl::get_label_str(kv.first) << ":\n" << kv.second << "\n";
+				}
+			crab::outs() << "\n");
 
-	  crab::CrabStats::resume("CombinedForwardBackward.CheckRefinement");
-	  assumption_map_t new_refined_assumptions;
-	  bool more_refinement = false;	  	  	  
-	  for (auto it =  m_cfg.begin(), et = m_cfg.end(); it!=et ; ++it) {
-	    AbsDom x = refined_assumptions[it->label()];
-	    AbsDom y = B[it->label()];
-	    AbsDom x_narrowing_y = x && y;
-	    more_refinement |= (!(x <= x_narrowing_y));
-	    new_refined_assumptions.insert({it->label(), x_narrowing_y});
-	  }
-	  if (more_refinement) {
-	    refined_assumptions.clear();
-	    refined_assumptions.insert(new_refined_assumptions.begin(),
-				       new_refined_assumptions.end());
-	    CRAB_LOG("backward",
-		     crab::outs() << "Backward analysis refined forward analysis.\n");
-	  } else {
-	    CRAB_LOG("backward",
-		     crab::outs() << "Backward analysis cannot refine more forward analysis.\n");
-	  }
-	  crab::CrabStats::stop("CombinedForwardBackward.CheckRefinement");
+	  		crab::CrabStats::resume("CombinedForwardBackward.CheckRefinement");
+	  		assumption_map_t new_refined_assumptions;
+	  		bool more_refinement = false;	  	  	  
+	  		for (auto it =  m_cfg.begin(), et = m_cfg.end(); it!=et ; ++it) {
+	    		AbsDom x = refined_assumptions[it->label()];
+	    		AbsDom y = B[it->label()];
+	    		AbsDom x_narrowing_y = x && y;
+	    		more_refinement |= (!(x <= x_narrowing_y));
+	    		new_refined_assumptions.insert({it->label(), x_narrowing_y});
+	  		}
+	  		if (more_refinement) {
+	    		refined_assumptions.clear();
+	    		refined_assumptions.insert(new_refined_assumptions.begin(), new_refined_assumptions.end());
+	    		CRAB_LOG("backward", crab::outs() << "Backward analysis refined forward analysis.\n");
+	  		}
+			else {
+	    		CRAB_LOG("backward", crab::outs() << "Backward analysis cannot refine more forward analysis.\n");
+	  		}
+	  		crab::CrabStats::stop("CombinedForwardBackward.CheckRefinement");
 	  
-	  if (!more_refinement || iters > max_num_iters) {
-	    if (more_refinement) {
-	      CRAB_LOG("backward",
-		       crab::outs() << "Limit of backward refinements already reached.\n");
-	    }
+	  		if (!more_refinement || iters > max_num_iters) {
+	    		if (more_refinement) {
+	      			CRAB_LOG("backward", crab::outs() << "Limit of backward refinements already reached.\n");
+	    		}
 	    
-	    // If refined_assumptions can prove that s is safe then
-	    // remove assertion s from m_unproven_assertions
-	    discharge_assertions(refined_assumptions, idom_tree);
-	    break;
-	  } 
+			    // If refined_assumptions can prove that s is safe then
+	    		// remove assertion s from m_unproven_assertions
+	    		discharge_assertions(refined_assumptions, idom_tree);
+	    		break;
+	  		} 
 	  	  
-	  // reuse wto for next iteration
-	  if (iters == 1) {
-	    m_b_wto = new bwd_wto_t(B.get_WTO());
-	  }
+	  		// reuse wto for next iteration
+	  		if (iters == 1) {
+	    		m_b_wto = new bwd_wto_t(B.get_WTO());
+	  		}
 	  
-	} // end while true
+		} // end while true
 
-	CRAB_VERBOSE_IF(1, get_msg_stream()
-			<< "Combined forward+backward analysis done after "
-			<< iters << " iterations.\n";); 	
-      }
+		CRAB_VERBOSE_IF(1, get_msg_stream() << "Combined forward+backward analysis done after " << iters << " iterations.\n";); 	
+    }
       
       // Return the invariants that hold at the entry of b
       AbsDom operator[](bb_label_t b) const {
