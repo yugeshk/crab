@@ -42,6 +42,22 @@
 #include <crab/domains/abstract_domain_operators.hpp>
 #include <crab/domains/linear_constraints.hpp>
 
+//Includes for DeepSymbol
+#include <iostream>
+#include <vector>
+#include <iterator>
+#include <algorithm>
+#include <map>
+#include <string>
+#include <sstream>
+#include <ostream>
+#include <cstdlib>
+#include <utility>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <fstream>  
+
 namespace crab {
 namespace analyzer {
 
@@ -59,6 +75,7 @@ public:
   typedef ikos::linear_expression<number_t, VariableName> lin_exp_t;
   typedef ikos::linear_constraint<number_t, VariableName> lin_cst_t;
   typedef ikos::linear_constraint_system<number_t, VariableName> lin_cst_sys_t;
+  typedef ikos::disjunctive_linear_constraint_system<number_t, VariableName> dis_lin_cst_sys_t;
 
   typedef crab::cfg::havoc_stmt<number_t, VariableName> havoc_t;
   typedef crab::cfg::unreachable_stmt<number_t, VariableName> unreach_t;
@@ -195,6 +212,7 @@ public:
   using typename abs_transform_api_t::havoc_t;
   using typename abs_transform_api_t::int_cast_t;
   using typename abs_transform_api_t::lin_cst_sys_t;
+  using typename abs_transform_api_t::dis_lin_cst_sys_t;
   using typename abs_transform_api_t::lin_cst_t;
   using typename abs_transform_api_t::lin_exp_t;
   using typename abs_transform_api_t::ptr_assert_t;
@@ -583,8 +601,248 @@ public:
     m_inv.pointer_assert(stmt.constraint());
   }
 
+std::string trim(const std::string &s){
+    auto start = s.begin();
+    while(start != s.end() && std::isspace(*start)){
+      start++;
+    }
+
+    auto end = s.end();
+    do{
+      end--;
+    }while(std::distance(start, end) > 0 && std::isspace(*end));
+
+    return std::string(start, end+1);
+  }
+  
   void exec(intrinsic_t &cs) {
-    m_inv.intrinsic(cs.get_intrinsic_name(), cs.get_args(), cs.get_lhs());
+
+    //Handle deepsymbol call
+    if(cs.get_intrinsic_name() == "deepsymbol"){
+      
+      //Step 1 : Prepare input_box_int
+      AbsD pre_invs(m_inv);
+      pre_invs.project(cs.get_args()); //These are linear constraints projected to llvm variables
+      auto pre_invars = pre_invs.to_linear_constraint_system();
+      std::vector<var_t> args_list = cs.get_args();
+      std::string call_st = cs.get_string();
+
+      std::map<std::string, int> llvmVar_featureIndex_map;
+      //Populate the map
+      call_st = call_st.substr(call_st.find("(") + 1, call_st.find(")") - call_st.find("(") - 1);
+      std::istringstream iss1(call_st);
+      int fv_index = 1;
+      std::string item, llvmVar_ax, llvmVar_ay;
+      while(std::getline(iss1, item, ',')){
+        if(fv_index <=14){
+          llvmVar_featureIndex_map.insert(std::pair<std::string, int>(item.substr(0, item.find(":")), fv_index));
+        }
+        else if(fv_index==15){
+          llvmVar_ax = item.substr(0, item.find(":"));
+        }
+        else if(fv_index==16){
+          llvmVar_ay = item.substr(0, item.find(":"));
+        }
+        else{
+          break;
+        }
+        fv_index++;
+      }
+
+      std::vector<std::pair<int, int>> input_box_int(14, std::make_pair(0, 0));
+      std::string invars = pre_invars.get_string(); //get string from pre_invars
+      if(invars.size() < 2 || invars.at(0) != '{' || invars.at(invars.size()-1) != '}'){
+        //std::cout() << "Malformed lin_cst string in intrinsic (check variable pre_invars)" << std::endl;
+        std::exit(1);
+      }
+
+      invars = invars.substr(1, invars.size()-2); //Stripped the braces
+      std::vector<std::string> lin_cst;
+      std::vector<std::vector<std::string>> tokens;
+      std::istringstream iss2(invars);
+      while(std::getline(iss2, item, ';')){
+        item = trim(item);
+        std::stringstream ss(item);  //String of individual lin_cst
+        std::istream_iterator<std::string> begin(ss);
+        std::istream_iterator<std::string> end;
+        std::vector<std::string> lin_cst(begin, end); //Convert each linear_cst to its tokens
+        tokens.push_back(lin_cst);
+      }
+
+      for(auto it: tokens){
+        if((it.size()!=3) && (it[0]!= "true" || it[0]!= "false")){
+          //std::cout() << "Malformed lin_cst token. Exitting" << std::endl;
+        }
+        else if(it.size()==3){
+
+          item = it[0]; //String of the llvm variable
+          if(item.at(0)=='-'){
+            item = item.substr(1, item.size()-1);
+            if(llvmVar_featureIndex_map.find(item) != llvmVar_featureIndex_map.end()){
+              fv_index = llvmVar_featureIndex_map.at(item);
+              if(it[1] == "="){
+                input_box_int[fv_index-1].first = -1*std::stoi(it[2]);
+                input_box_int[fv_index-1].second = -1*std::stoi(it[2]);
+              }
+              else if(it[1] == "<"){
+                input_box_int[fv_index-1].first = -1*std::stoi(it[2])+1;
+              }
+              else if(it[1] == "<="){
+                input_box_int[fv_index-1].first = -1*std::stoi(it[2]);
+              }
+              else if(it[1] == ">"){
+                input_box_int[fv_index-1].second = -1*std::stoi(it[2])-1;
+              }
+              else if(it[1] == ">="){
+                input_box_int[fv_index-1].second = -1*std::stoi(it[2]);
+              }
+              else{
+                //std::cout() << "LIN CST OPERATOR INVALID. EXITTING" << endl;
+                exit(1);
+              }
+            }
+          }
+          else{
+            if(llvmVar_featureIndex_map.find(item) != llvmVar_featureIndex_map.end()){
+              fv_index = llvmVar_featureIndex_map.at(item);
+              if(it[1] == "="){
+                input_box_int[fv_index-1].first = std::stoi(it[2]);
+                input_box_int[fv_index-1].second = std::stoi(it[2]);
+              }
+              else if(it[1] == "<"){
+                input_box_int[fv_index-1].second = std::stoi(it[2])-1;
+              }
+              else if(it[1] == "<="){
+                input_box_int[fv_index-1].second = std::stoi(it[2]);
+              }
+              else if(it[1] == ">"){
+                input_box_int[fv_index-1].first = std::stoi(it[2])+1;
+              }
+              else if(it[1] == ">="){
+                input_box_int[fv_index-1].first = std::stoi(it[2]);
+              }
+              else{
+                //std::cout() << "LIN CST OPERATOR INVALID. EXITTING" << endl;
+                exit(1);
+              }
+            }
+          }
+        }
+      }
+
+
+
+      //Step 2 : Make the call to DeepSymbol
+      int fd1[2];
+      int fd2[2];
+      pid_t p;
+
+      if(pipe(fd1) == -1 || pipe(fd2) == -1){                                          
+        //std::cout() << "Could not create pipes." << std::endl;                               
+        exit(1);                                                                 
+      }
+
+      p = fork();                                                                  
+                                                                                  
+      if(p < 0){                                                                   
+        //std::cout() << "Fork failed." << std::endl;                                          
+        exit(1);                                                                                                                                                                                                                          
+      }                                                                            
+                                                                                  
+      //Parent process - CRAB                                                      
+      //Assuming we have formed our input in input_box_int                         
+      else if(p > 0){                                                              
+        close(fd1[0]); //close reading end of first pipe                         
+                                                                                  
+        int arr[28];                                                             
+        for(int i=0;i<14;i++){                                                   
+          arr[2*i] = input_box_int[i].first;                                   
+          arr[2*i+1] = input_box_int[i].second;                                
+        }                                                                        
+                                                                                   
+        //Write the input to the pipe and close writing end                      
+        write(fd1[1], (const void* )(arr), 28*sizeof(int));                      
+        close(fd1[1]); // close writing end of first pipe                        
+                                                                                   
+        //Wait for child                                                         
+        wait(NULL);                                                              
+                                                                                   
+        close(fd2[1]); //close writing end of second pipe                        
+                                                                                   
+        //Read from the input of second pipe                                     
+        int out_size;                                                            
+        read(fd2[0], (void *)(&out_size), sizeof(int));                          
+        int *out_arr = (int *)(calloc(out_size, sizeof(int)));                   
+        read(fd2[0], (void *)(out_arr), 2*out_size*sizeof(int));                 
+                                                                                   
+        std::vector<std::pair<int, int>> output_box_int;                         
+        for(int i=0;i<out_size;i+=2){                                            
+          output_box_int.push_back(std::pair<int, int>(out_arr[i], out_arr[i+1]));  
+        }                                                                        
+                                                                                   
+        close(fd2[0]); //close reading end of second pipe   
+
+        //Step 3 : Get the return value and make disjunctive_constraints                     
+        //Print the output - will be converted to disjuncts                      
+        // //std::cout << "Number of actions received : " << out_size << std::endl;   
+        // int count=1;                                                             
+        // for(auto it: output_box_int){                                            
+        //   cout << "Action number " << count << " : " << it.first << "," << it.second << endl;
+        //   count++;                                                             
+        // }
+
+        //std::cout() << "CALL TO DEEPSYMBOL SUCCESSFUL\n\n";
+        //Create linear_constraint
+
+        var_t ax = args_list[14];
+        var_t ay = args_list[15];
+
+        for (auto &p: output_box_int) {
+          abs_dom_t conjunction = abs_dom_t::top(); 
+          lin_cst_t cst1(ax == number_t(p.first));
+          lin_cst_t cst2(ay == number_t(p.second));
+          conjunction += cst1;
+          conjunction += cst2; 
+          m_inv |= conjunction;
+        }
+      }                                                                            
+                                                                                   
+      //Child process - after reqd manipulation, we exec to deepsymbol middleware  
+      else{                                                                              
+        close(fd1[1]); //close writing end of the first pipe                     
+        close(fd2[0]); //close reading end of second pipe                        
+                                                                                 
+        //Read bound integers from first pipe                                    
+        int *bounds_arr = (int *)(malloc(28*sizeof(int)));                       
+                                                                                 
+        read(fd1[0], (void *)(bounds_arr), 28*sizeof(int));                      
+                                                                                 
+        //Convert to char * for exec                                             
+        //31 args to middleware: 1 path, 1 fd, 28 bounds, NULL                   
+        char *args[31];                                                          
+        args[0] = (char *)(malloc(43*sizeof(char)));                             
+        args[0] = "/clam/crab/external/deepsymbol/middleware";                   
+        args[1] = (char *)(malloc(sizeof(int)+sizeof(char)));                    
+        sprintf(args[1], "%d\0", fd2[1]); //File descriptor for child process to write to
+        for(int i=2; i<30; i++){                                                 
+            args[i] = (char *)(malloc(sizeof(int)+sizeof(char)));                
+            sprintf(args[i], "%d\0", bounds_arr[i-2]);                           
+        }                                                                        
+       args[30] = NULL;                                                         
+                                                                                
+       close(fd1[0]);                                                           
+       execv(args[0], args);                                                    
+       //std::cout() << "Failed to execute deepsymbol" << endl;                          
+       exit(1);                                                                                                                      
+      }                    
+    }
+    else if(cs.get_intrinsic_name() == "eran"){
+      //Handle eran call
+      m_inv.intrinsic(cs.get_intrinsic_name(), cs.get_args(), cs.get_lhs());
+    }
+    else{
+      m_inv.intrinsic(cs.get_intrinsic_name(), cs.get_args(), cs.get_lhs());
+    }
   }
   
   virtual void exec(callsite_t &cs) {

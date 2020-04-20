@@ -2,6 +2,7 @@
 
 #include <iosfwd>
 #include <memory>
+#include <sstream>
 
 namespace crab {
 

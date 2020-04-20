@@ -53,6 +53,7 @@
 #include <functional> // for wrapper_reference
 #include <unordered_map>
 #include <unordered_set>
+#include <ostream>
 
 namespace crab {
 
@@ -90,10 +91,6 @@ namespace cfg {
       CLAM_PRINT = 90, CLAM_VAR_TAGS = 91, CLAM_NN = 92,
     }; 
     
-    template<typename Number, typename VariableName>
-    class live {
-     public:
-
 template <typename Number, typename VariableName> class live {
 public:
   typedef ikos::variable<Number, VariableName> variable_t;
@@ -299,6 +296,12 @@ struct debug_info {
       		void dump() const {
 				write(crab::errs());
       		}
+
+          std::string get_string() {
+            crab::crab_string_os ss;
+            write(ss);
+            return ss.str();
+          }
       
       		friend crab_os& operator<<(crab_os&o, const statement<Number,VariableName> &s) {
         		s.write(o);

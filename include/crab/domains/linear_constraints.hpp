@@ -55,6 +55,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <ostream>
 
 namespace ikos {
 
@@ -1542,6 +1543,12 @@ public:
 
   // for dgb
   void dump() { write(crab::outs()); }
+
+  std::string get_string(){
+    crab::crab_string_os ss;
+    write(ss);
+    return ss.str();
+  }
 
 }; // class linear_constraint_system
 
