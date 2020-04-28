@@ -11,3 +11,4 @@
 *.pyo
 .vscode
 dockercp.sh
+.changes.bkp.cpp
