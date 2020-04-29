@@ -631,9 +631,15 @@ std::string trim(const std::string &s){
       //Populate the map
       call_st = call_st.substr(call_st.find("(") + 1, call_st.find(")") - call_st.find("(") - 1);
       std::istringstream iss1(call_st);
-      int fv_index = 1;
+      int fv_index = 0;
       std::string item, llvmVar_ax, llvmVar_ay;
       while(std::getline(iss1, item, ',')){
+        if(fv_index == 0){
+          if(item.substr(0, item.find(":")) != "deepsymbol"){
+            crab::outs() << "Malformed instrinsic statement call" << "\n";
+            std::exit(1);
+          }
+        }
         if(fv_index <=14){
           llvmVar_featureIndex_map.insert(std::pair<std::string, int>(item.substr(0, item.find(":")), fv_index));
         }
@@ -649,10 +655,9 @@ std::string trim(const std::string &s){
         fv_index++;
       }
 
-      std::vector<std::pair<int, int>> input_box_int(14, std::make_pair(0, 0));
       std::string invars = pre_invars.get_string(); //get string from pre_invars
       if(invars.size() < 2 || invars.at(0) != '{' || invars.at(invars.size()-1) != '}'){
-        //std::cout() << "Malformed lin_cst string in intrinsic (check variable pre_invars)" << std::endl;
+        crab::outs() << "Malformed lin_cst string in intrinsic (check variable pre_invars)" << "\n";
         std::exit(1);
       }
 
@@ -669,12 +674,14 @@ std::string trim(const std::string &s){
         tokens.push_back(lin_cst);
       }
 
+      std::vector<std::pair<int, int>> input_box_int(14, std::make_pair(0, 0));
+
       for(auto it: tokens){
         if((it.size()!=3) && (it[0]!= "true" || it[0]!= "false")){
-          //std::cout() << "Malformed lin_cst token. Exitting" << std::endl;
+          crab::outs() << "Malformed lin_cst token. Exitting" << "\n";
+          std::exit(1);
         }
         else if(it.size()==3){
-
           item = it[0]; //String of the llvm variable
           if(item.at(0)=='-'){
             item = item.substr(1, item.size()-1);
@@ -697,7 +704,7 @@ std::string trim(const std::string &s){
                 input_box_int[fv_index-1].second = -1*std::stoi(it[2]);
               }
               else{
-                //std::cout() << "LIN CST OPERATOR INVALID. EXITTING" << endl;
+                crab::outs() << "LIN CST OPERATOR INVALID. EXITTING" << "\n";
                 exit(1);
               }
             }
@@ -722,7 +729,7 @@ std::string trim(const std::string &s){
                 input_box_int[fv_index-1].first = std::stoi(it[2]);
               }
               else{
-                //std::cout() << "LIN CST OPERATOR INVALID. EXITTING" << endl;
+                crab::outs() << "LIN CST OPERATOR INVALID. EXITTING" << "\n";
                 exit(1);
               }
             }
@@ -730,22 +737,20 @@ std::string trim(const std::string &s){
         }
       }
 
-
-
       //Step 2 : Make the call to DeepSymbol
       int fd1[2];
       int fd2[2];
       pid_t p;
 
       if(pipe(fd1) == -1 || pipe(fd2) == -1){                                          
-        //std::cout() << "Could not create pipes." << std::endl;                               
+        crab::outs() << "Could not create pipes." << "\n";                               
         exit(1);                                                                 
       }
 
       p = fork();                                                                  
                                                                                   
       if(p < 0){                                                                   
-        //std::cout() << "Fork failed." << std::endl;                                          
+        crab::outs() << "Fork failed." << "\n";                                          
         exit(1);                                                                                                                                                                                                                          
       }                                                                            
                                                                                   
@@ -784,18 +789,18 @@ std::string trim(const std::string &s){
 
         //Step 3 : Get the return value and make disjunctive_constraints                     
         //Print the output - will be converted to disjuncts                      
-        // //std::cout << "Number of actions received : " << out_size << std::endl;   
+        // crab::outs << "Number of actions received : " << out_size << "\n";   
         // int count=1;                                                             
         // for(auto it: output_box_int){                                            
         //   cout << "Action number " << count << " : " << it.first << "," << it.second << endl;
         //   count++;                                                             
         // }
 
-        //std::cout() << "CALL TO DEEPSYMBOL SUCCESSFUL\n\n";
+        crab::outs() << "CALL TO DEEPSYMBOL SUCCESSFUL\n\n";
         //Create linear_constraint
 
-        var_t ax = args_list[14];
-        var_t ay = args_list[15];
+        var_t ax = args_list[15];
+        var_t ay = args_list[16];
 
         for (auto &p: output_box_int) {
           abs_dom_t conjunction = abs_dom_t::top(); 
@@ -832,7 +837,7 @@ std::string trim(const std::string &s){
                                                                                 
        close(fd1[0]);                                                           
        execv(args[0], args);                                                    
-       //std::cout() << "Failed to execute deepsymbol" << endl;                          
+       crab::outs() << "Failed to execute deepsymbol" << "\n";                          
        exit(1);                                                                                                                      
       }                    
     }
@@ -841,6 +846,38 @@ std::string trim(const std::string &s){
       m_inv.intrinsic(cs.get_intrinsic_name(), cs.get_args(), cs.get_lhs());
     }
     else{
+      std::string call_st = cs.get_string();
+      crab::outs() << "*****INTRINSIC*******\n";
+      crab::outs() << "This is the statement" << call_st << "\n";
+      call_st = call_st.substr(call_st.find("(") + 1, call_st.find(")") - call_st.find("(") - 1);
+      std::istringstream iss1(call_st);
+      std::string item;
+      int index = 0;
+      while(std::getline(iss1, item, ',')){
+        crab::outs() << "Entry at index " << index << " : " << item.substr(0, item.find(":")) << "\n";
+      }
+
+      AbsD pre_invs(m_inv);
+      pre_invs.project(cs.get_args()); //These are linear constraints projected to llvm variables
+      auto pre_invars = pre_invs.to_linear_constraint_system();
+      std::string invars = pre_invars.get_string(); //get string from pre_invars
+
+      invars = invars.substr(1, invars.size()-2); //Stripped the braces
+      std::istringstream iss2(invars);
+      while(std::getline(iss2, item, ';')){
+        item = trim(item);
+        std::stringstream ss(item);  //String of individual lin_cst
+        std::istream_iterator<std::string> begin(ss);
+        std::istream_iterator<std::string> end;
+        std::vector<std::string> lin_cst(begin, end); //Convert each linear_cst to its tokens
+        for(auto si: lin_cst){
+          crab::outs() << si << "\n";
+        }
+      }
+
+
+      crab::outs() << "*******************\n";
+
       m_inv.intrinsic(cs.get_intrinsic_name(), cs.get_args(), cs.get_lhs());
     }
   }
