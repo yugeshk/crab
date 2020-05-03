@@ -640,7 +640,7 @@ std::string trim(const std::string &s){
             std::exit(1);
           }
         }
-        if(fv_index <=14){
+        else if(fv_index <=14){
           llvmVar_featureIndex_map.insert(std::pair<std::string, int>(item.substr(0, item.find(":")), fv_index));
         }
         else if(fv_index==15){
@@ -736,6 +736,8 @@ std::string trim(const std::string &s){
           }
         }
       }
+
+      crab::outs() << "Making deepsymbol call" << "\n";
 
       //Step 2 : Make the call to DeepSymbol
       int fd1[2];
@@ -855,6 +857,7 @@ std::string trim(const std::string &s){
       int index = 0;
       while(std::getline(iss1, item, ',')){
         crab::outs() << "Entry at index " << index << " : " << item.substr(0, item.find(":")) << "\n";
+        index++;
       }
 
       AbsD pre_invs(m_inv);

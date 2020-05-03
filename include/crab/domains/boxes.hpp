@@ -2042,7 +2042,7 @@ typename boxes_domain_<N, V, R, S>::var_map_t
 #if 1
 // Without copy-on-write
 template <typename Number, typename VariableName, int ConvexReduce = -1,
-          size_t LddSize = 3000>
+          size_t LddSize = 300000>
 using boxes_domain = boxes_domain_<Number, VariableName, ConvexReduce, LddSize>;
 #else
 
@@ -2056,7 +2056,7 @@ struct abstract_domain_traits<
 
 // Quick wrapper which uses shared references with copy-on-write.
 template <class Number, class VariableName, int ConvexReduce = -1,
-          size_t LddSize = 3000>
+          size_t LddSize = 300000>
 class boxes_domain final
     : public abstract_domain<
           boxes_domain<Number, VariableName, ConvexReduce, LddSize>> {
