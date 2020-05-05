@@ -828,7 +828,7 @@ std::string trim(const std::string &s){
         //31 args to middleware: 1 path, 1 fd, 28 bounds, NULL                   
         char *args[31];                                                          
         args[0] = (char *)(malloc(43*sizeof(char)));                             
-        args[0] = "/clam/crab/external/deepsymbol/middleware";                   
+        args[0] = "/deepsymbol/middleware";                   
         args[1] = (char *)(malloc(sizeof(int)+sizeof(char)));                    
         sprintf(args[1], "%d\0", fd2[1]); //File descriptor for child process to write to
         for(int i=2; i<30; i++){                                                 
