@@ -19,7 +19,7 @@
 #define LDD_NOT_FOUND "No LDD. Run cmake with -DCRAB_USE_LDD=ON"
 namespace crab {
 namespace domains {
-template <typename Number, typename VariableName, int ConvexReduce = 200000000,
+template <typename Number, typename VariableName, int ConvexReduce = 1000000,
           size_t LddSize = 100>
 class boxes_domain final
     : public abstract_domain<
@@ -2041,8 +2041,8 @@ typename boxes_domain_<N, V, R, S>::var_map_t
 
 #if 1
 // Without copy-on-write
-template <typename Number, typename VariableName, int ConvexReduce = 200000000,
-          size_t LddSize = 3000000>
+template <typename Number, typename VariableName, int ConvexReduce = 1000000,
+          size_t LddSize = 300000000>
 using boxes_domain = boxes_domain_<Number, VariableName, ConvexReduce, LddSize>;
 #else
 
@@ -2055,7 +2055,7 @@ struct abstract_domain_traits<
 };
 
 // Quick wrapper which uses shared references with copy-on-write.
-template <class Number, class VariableName, int ConvexReduce = 200000000,
+template <class Number, class VariableName, int ConvexReduce = 1000000,
           size_t LddSize = 3000000>
 class boxes_domain final
     : public abstract_domain<
