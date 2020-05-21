@@ -625,6 +625,7 @@ std::string trim(const std::string &s){
     std::fprintf(logging, "Reached a crab intrinsic at %s, please chcek appropriate logs", ctime(&t));
     fclose(logging);
 
+    //Time logger intrinsic
     if(cs.get_intrinsic_name() == "logger"){
       logging = std::fopen("/clam/custom_logging/logger.log", "a+");
       time(&t);
@@ -822,8 +823,8 @@ std::string trim(const std::string &s){
         crab::outs() << "CALL TO DEEPSYMBOL SUCCESSFUL\n\n";
         //Create linear_constraint
 
-        var_t ax = args_list[15];
-        var_t ay = args_list[16];
+        var_t ax = args_list[14];
+        var_t ay = args_list[15];
 
         for (auto &p: output_box_int) {
           abs_dom_t conjunction = abs_dom_t::top(); 
@@ -867,6 +868,183 @@ std::string trim(const std::string &s){
     else if(cs.get_intrinsic_name() == "eran"){
       //Handle eran call
       m_inv.intrinsic(cs.get_intrinsic_name(), cs.get_args(), cs.get_lhs());
+    }
+    else if(cs.get_intrinsic_name() == "access_map"){
+      //Map
+      int map[4][4] = 
+      {
+        {'.', '.', '.', '.'},
+        {'x', 'x', 'x', 'x'},
+        {'s', 's', 's', 's'},
+        {'g', 'g', 'g', 'g'}
+      };
+
+      AbsD pre_invs(m_inv);
+      std::vector<var_t> args_list = cs.get_args();
+      std::vector<var_t> position_vars;
+      position_vars.push_back(args_list[0]);
+      position_vars.push_back(args_list[1]);
+
+      //get string name of position x,y llvmVars
+      std::string call_st = cs.get_string();
+      crab::outs() << "This is the call statement : " << call_st << "\n";
+      call_st = call_st.substr(call_st.find("(") + 1, call_st.find(")") - call_st.find("(") - 1);
+      std::istringstream iss1(call_st);
+      int index=0;
+      std::string llvmVar_posx, llvmVar_posy, llvmVar_return;
+      std::string item;
+      while(std::getline(iss1, item, ',')){
+        if(index == 0){
+          if(item.substr(0, item.find(":")) != "access_map"){
+            crab::outs() << "Malformed instrinsic statement call" << "\n";
+            std::exit(1);
+          }
+        }
+        else if(index == 1){
+          llvmVar_posx = item.substr(0, item.find(":"));
+        }
+        else if(index == 2){
+          llvmVar_posy = item.substr(0, item.find(":"));
+        }
+        else if(index == 3){
+          llvmVar_return = item.substr(0, item.find(":"));
+        }
+        else{
+          crab::outs() << "More than expected arguements passed" << "\n";
+          std::exit(1);
+        }
+        index++;
+      }
+      //Get linear constraints on the position_vars
+      crab::outs() << "This is everything : " << pre_invs.to_linear_constraint_system().get_string() << "\n";
+      auto pre_invars = pre_invs.to_linear_constraint_system();
+
+      std::string position_bounds = pre_invars.get_string();
+      crab::outs() << "This is are the linear cst : " << position_bounds << "\n";
+      position_bounds = position_bounds.substr(1, position_bounds.size()-2);
+      std::vector<std::string> lin_cst;
+      std::vector<std::vector<std::string>> tokens;
+      std::istringstream iss2(position_bounds);
+      while(std::getline(iss2, item, ';')){
+        item = trim(item);
+        std::stringstream ss(item);  //String of individual lin_cst
+        std::istream_iterator<std::string> begin(ss);
+        std::istream_iterator<std::string> end;
+        std::vector<std::string> lin_cst(begin, end); //Convert each linear_cst to its tokens
+        tokens.push_back(lin_cst);
+      }
+
+      std::vector<std::pair<int, int>> input_box_int(2, std::make_pair(0, 0));
+      for(auto it: tokens){
+        if((it.size()!=3) && (it[0]!= "true") && (it[0]!= "false")){
+          crab::outs() << "Malformed lin_cst token. Exitting" << "\n";
+          std::exit(1);
+        }
+        else if(it.size()==3){
+          item = it[0]; //String of the llvm variable
+          if(item.at(0)=='-'){
+            item = item.substr(1, item.size()-1);
+            if(item == llvmVar_posx){
+              index = 0;
+            }
+            else if(item == llvmVar_posy){
+              index = 1;
+            }
+            else{
+              continue;
+            }
+
+            if(it[1] == "="){
+              input_box_int[index].first = -1*std::stoi(it[2]);
+              input_box_int[index].second = -1*std::stoi(it[2]);
+            }
+            else if(it[1] == "<"){
+              input_box_int[index].first = -1*std::stoi(it[2])+1;
+            }
+            else if(it[1] == "<="){
+              input_box_int[index].first = -1*std::stoi(it[2]);
+            }
+            else if(it[1] == ">"){
+              input_box_int[index].second = -1*std::stoi(it[2])-1;
+            }
+            else if(it[1] == ">="){
+              input_box_int[index].second = -1*std::stoi(it[2]);
+            }
+            else{
+              crab::outs() << "LIN CST OPERATOR INVALID. EXITTING" << "\n";
+              exit(1);
+            }
+          }
+          else{ //This is a positive constraint
+            if(item == llvmVar_posx){
+              index = 0;
+            }
+            else if(item == llvmVar_posy){
+              index = 1;
+            }
+            else{
+              continue;
+            }
+            
+            if(it[1] == "="){
+              input_box_int[index].first = std::stoi(it[2]);
+              input_box_int[index].second = std::stoi(it[2]);
+            }
+            else if(it[1] == "<"){
+              input_box_int[index].second = std::stoi(it[2])-1;
+            }
+            else if(it[1] == "<="){
+              input_box_int[index].second = std::stoi(it[2]);
+            }
+            else if(it[1] == ">"){
+              input_box_int[index].first = std::stoi(it[2])+1;
+            }
+            else if(it[1] == ">="){
+              input_box_int[index].first = std::stoi(it[2]);
+            }
+            else{
+              crab::outs() << "LIN CST OPERATOR INVALID. EXITTING" << "\n";
+              exit(1);
+            }
+          }
+        }
+      }
+
+      crab::outs() << "Lower and Upper i : " << input_box_int[0].first << " to " << input_box_int[0].second << "\n";
+      crab::outs() << "Lower and Upper j : " << input_box_int[1].first << " to " << input_box_int[1].second << "\n"; 
+
+      //Access the map to check what are possible values
+      std::vector<int> possible_map_locations;
+      for(int i=input_box_int[0].first; i<=input_box_int[0].first; i++){
+        for(int j=input_box_int[1].first; j<=input_box_int[1].first; j++){
+          if(std::find(possible_map_locations.begin(), possible_map_locations.end(), map[i][j]) != possible_map_locations.end()){
+            continue;
+          }
+          else{
+            possible_map_locations.push_back(map[i][j]);
+          }
+        }
+      }
+
+      //Push llvmVar_return into invariants
+      abs_dom_t boxes = abs_dom_t::bottom();
+      var_t z = args_list[2];
+
+      for (auto p: possible_map_locations) { 
+        crab::outs() << "Possible location " << p << "\n";
+        abs_dom_t conjunction = abs_dom_t::top(); 
+        lin_cst_t cst(z == number_t(p));
+        conjunction += cst; 
+        boxes |= conjunction;
+        crab::outs() << "Boxes disjuncts : " << boxes.to_linear_constraint_system().get_string() << "\n";
+      }
+
+      m_inv |= boxes;
+
+      //crab::outs() << "We made this : " << m_inv.to_linear_constraint_system().get_string() << "\n";
+
+      //crab::outs() << "Ended intrinsic" << "\n";
+
     }
     else{
       // This is the default intrinsic behaviour, here we will test the behaviour of an intrinsic
