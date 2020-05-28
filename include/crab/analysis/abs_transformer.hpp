@@ -1039,12 +1039,48 @@ std::string trim(const std::string &s){
         crab::outs() << "Boxes disjuncts : " << boxes.to_linear_constraint_system().get_string() << "\n";
       }
 
-      m_inv |= boxes;
+      m_inv = m_inv&boxes;
 
-      //crab::outs() << "We made this : " << m_inv.to_linear_constraint_system().get_string() << "\n";
+      crab::outs() << "This is m_inv : " << m_inv.to_linear_constraint_system().get_string() << "\n";
 
       //crab::outs() << "Ended intrinsic" << "\n";
 
+    }
+    else if(cs.get_intrinsic_name() == "dummy_one"){
+      AbsD pre_invs(m_inv);
+      crab::outs() << "Invariants at entry : " << pre_invs.to_linear_constraint_system().get_string() << "\n";
+      std::vector<var_t> args_list = cs.get_args();
+      var_t z = args_list[2];
+      int p = 'x';
+      abs_dom_t boxes = abs_dom_t::bottom();
+      abs_dom_t conjunction = abs_dom_t::top();
+      lin_cst_t cst(z == number_t(p));
+      conjunction += cst;
+      boxes |= conjunction;
+      crab::outs() << "This is boxes : " << boxes.to_linear_constraint_system().get_string() << "\n";
+      m_inv |= boxes;
+      crab::outs() << "This is m_inv : " << m_inv.to_linear_constraint_system().get_string() << "\n"; 
+    }
+    else if(cs.get_intrinsic_name() == "dummy_two"){
+      AbsD pre_invs(m_inv);
+      crab::outs() << "Invariants at entry : " << pre_invs.to_linear_constraint_system().get_string() << "\n";
+      std::vector<var_t> args_list = cs.get_args();
+      var_t z = args_list[2];
+      int p = 'x';
+      m_inv.assign(z, number_t(p));
+      crab::outs() << "This is m_inv : " << m_inv.to_linear_constraint_system().get_string() << "\n"; 
+    }
+    else if(cs.get_intrinsic_name() == "dummy_three"){
+      AbsD pre_invs(m_inv);
+      crab::outs() << "Invariants at entry : " << pre_invs.to_linear_constraint_system().get_string() << "\n";
+      std::vector<var_t> args_list = cs.get_args();
+      var_t z = args_list[2];
+      int p = 'x';
+      abs_dom_t boxes = abs_dom_t::top();
+      boxes.assign(z, number_t(p));
+      crab::outs() << "This is boxes : " << boxes.to_linear_constraint_system().get_string() << "\n";
+      m_inv |= boxes;
+      crab::outs() << "This is m_inv : " << m_inv.to_linear_constraint_system().get_string() << "\n"; 
     }
     else{
       // This is the default intrinsic behaviour, here we will test the behaviour of an intrinsic
