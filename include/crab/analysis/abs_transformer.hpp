@@ -825,6 +825,7 @@ std::string trim(const std::string &s){
 
         var_t ax = args_list[14];
         var_t ay = args_list[15];
+        abs_dom_t boxes = abs_dom_t::bottom();
 
         for (auto &p: output_box_int) {
           abs_dom_t conjunction = abs_dom_t::top(); 
@@ -832,8 +833,11 @@ std::string trim(const std::string &s){
           lin_cst_t cst2(ay == number_t(p.second));
           conjunction += cst1;
           conjunction += cst2; 
-          m_inv |= conjunction;
+          boxes |= conjunction;
         }
+
+        m_inv = m_inv&boxes;
+
       }                                                                            
                                                                                    
       //Child process - after reqd manipulation, we exec to deepsymbol middleware  
@@ -916,9 +920,9 @@ std::string trim(const std::string &s){
         index++;
       }
       //Get linear constraints on the position_vars
-      crab::outs() << "This is everything : " << pre_invs.to_linear_constraint_system().get_string() << "\n";
+      crab::outs() << "This is everything : " << pre_invs << "\n";
+      pre_invs.project(position_vars);
       auto pre_invars = pre_invs.to_linear_constraint_system();
-
       std::string position_bounds = pre_invars.get_string();
       crab::outs() << "This is are the linear cst : " << position_bounds << "\n";
       position_bounds = position_bounds.substr(1, position_bounds.size()-2);
@@ -1010,13 +1014,16 @@ std::string trim(const std::string &s){
         }
       }
 
+      //TODO : sanity check 
+
       crab::outs() << "Lower and Upper i : " << input_box_int[0].first << " to " << input_box_int[0].second << "\n";
       crab::outs() << "Lower and Upper j : " << input_box_int[1].first << " to " << input_box_int[1].second << "\n"; 
 
       //Access the map to check what are possible values
       std::vector<int> possible_map_locations;
-      for(int i=input_box_int[0].first; i<=input_box_int[0].first; i++){
-        for(int j=input_box_int[1].first; j<=input_box_int[1].first; j++){
+      for(int i=input_box_int[0].first; i<=input_box_int[0].second; i++){
+        for(int j=input_box_int[1].first; j<=input_box_int[1].second; j++){
+          //if (i,j) are allowed in the invariants
           if(std::find(possible_map_locations.begin(), possible_map_locations.end(), map[i][j]) != possible_map_locations.end()){
             continue;
           }
@@ -1036,13 +1043,20 @@ std::string trim(const std::string &s){
         lin_cst_t cst(z == number_t(p));
         conjunction += cst; 
         boxes |= conjunction;
-        crab::outs() << "Boxes disjuncts : " << boxes.to_linear_constraint_system().get_string() << "\n";
+        crab::outs() << "Boxes disjuncts : " << boxes << "\n";
       }
 
       m_inv = m_inv&boxes;
 
-      crab::outs() << "This is m_inv : " << m_inv.to_linear_constraint_system().get_string() << "\n";
+      crab::outs() << "This is m_inv : " << m_inv << "\n";
+      crab::outs() << "This is m_inv lin cst: " << m_inv.to_linear_constraint_system().get_string() << "\n";
 
+      AbsD tmp(m_inv);
+      std::vector<var_t> tempo;
+      tempo.push_back(z);
+      tmp.project(tempo);
+      crab::outs() << "This is m_inv projected to z " << tmp << "\n";
+      crab::outs() << "This is m_inv projected to z with lin cst " << tmp.to_linear_constraint_system().get_string() << "\n";
       //crab::outs() << "Ended intrinsic" << "\n";
 
     }
