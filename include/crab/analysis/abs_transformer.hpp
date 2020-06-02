@@ -602,7 +602,7 @@ public:
     m_inv.pointer_assert(stmt.constraint());
   }
 
-std::string trim(const std::string &s){
+  std::string trim(const std::string &s){
     auto start = s.begin();
     while(start != s.end() && std::isspace(*start)){
       start++;
@@ -614,6 +614,32 @@ std::string trim(const std::string &s){
     }while(std::distance(start, end) > 0 && std::isspace(*end));
 
     return std::string(start, end+1);
+  }
+
+  std::vector<std::string> parse_disjunct_invariants(std::string s){
+    std::vector<std::string> disjuncts;
+    int index = 0;
+    while(true){
+      //Locate "or" to replace
+      index = s.find("or", index);
+      if(index == std::string::npos) break;
+
+      //Make the replacement
+      s.replace(index, 2, "O");
+
+      //Advance index
+      index += 1;
+    }
+    
+    std::string item;
+    std::istringstream outer(s);
+    while(std::getline(outer, item, 'O')){
+      item = trim(item);
+      item = item.substr(1, item.size()-2);
+      disjuncts.push_back(item);
+    }
+
+    return disjuncts;
   }
   
   void exec(intrinsic_t &cs) {
@@ -875,12 +901,32 @@ std::string trim(const std::string &s){
     }
     else if(cs.get_intrinsic_name() == "access_map"){
       //Map
-      int map[4][4] = 
-      {
-        {'.', '.', '.', '.'},
-        {'x', 'x', 'x', 'x'},
-        {'s', 's', 's', 's'},
-        {'g', 'g', 'g', 'g'}
+      int CORNER_MAP[25][25] = {
+        {'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 's', 's', 's', 's', 's', 's', 's', 's', 's', 's', 'x'},
+        {'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x'},
+        {'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x'},
+        {'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x'},
+        {'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x'},
+        {'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x'},
+        {'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x'},
+        {'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x'},
+        {'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x'},
+        {'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x'},
+        {'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x'},
+        {'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x'},
+        {'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x'},
+        {'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x'},
+        {'g', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x'},
+        {'g', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x'},
+        {'g', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x'},
+        {'g', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x'},
+        {'g', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x'},
+        {'g', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x'},
+        {'g', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x'},
+        {'g', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x'},
+        {'g', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x'},
+        {'g', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x'},
+        {'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'}
       };
 
       AbsD pre_invs(m_inv);
@@ -922,113 +968,132 @@ std::string trim(const std::string &s){
       //Get linear constraints on the position_vars
       crab::outs() << "This is everything : " << pre_invs << "\n";
       pre_invs.project(position_vars);
-      auto pre_invars = pre_invs.to_linear_constraint_system();
-      std::string position_bounds = pre_invars.get_string();
-      crab::outs() << "This is are the linear cst : " << position_bounds << "\n";
-      position_bounds = position_bounds.substr(1, position_bounds.size()-2);
-      std::vector<std::string> lin_cst;
-      std::vector<std::vector<std::string>> tokens;
-      std::istringstream iss2(position_bounds);
-      while(std::getline(iss2, item, ';')){
-        item = trim(item);
-        std::stringstream ss(item);  //String of individual lin_cst
-        std::istream_iterator<std::string> begin(ss);
-        std::istream_iterator<std::string> end;
-        std::vector<std::string> lin_cst(begin, end); //Convert each linear_cst to its tokens
-        tokens.push_back(lin_cst);
-      }
 
-      std::vector<std::pair<int, int>> input_box_int(2, std::make_pair(0, 0));
-      for(auto it: tokens){
-        if((it.size()!=3) && (it[0]!= "true") && (it[0]!= "false")){
-          crab::outs() << "Malformed lin_cst token. Exitting" << "\n";
-          std::exit(1);
-        }
-        else if(it.size()==3){
-          item = it[0]; //String of the llvm variable
-          if(item.at(0)=='-'){
-            item = item.substr(1, item.size()-1);
-            if(item == llvmVar_posx){
-              index = 0;
-            }
-            else if(item == llvmVar_posy){
-              index = 1;
-            }
-            else{
-              continue;
-            }
-
-            if(it[1] == "="){
-              input_box_int[index].first = -1*std::stoi(it[2]);
-              input_box_int[index].second = -1*std::stoi(it[2]);
-            }
-            else if(it[1] == "<"){
-              input_box_int[index].first = -1*std::stoi(it[2])+1;
-            }
-            else if(it[1] == "<="){
-              input_box_int[index].first = -1*std::stoi(it[2]);
-            }
-            else if(it[1] == ">"){
-              input_box_int[index].second = -1*std::stoi(it[2])-1;
-            }
-            else if(it[1] == ">="){
-              input_box_int[index].second = -1*std::stoi(it[2]);
-            }
-            else{
-              crab::outs() << "LIN CST OPERATOR INVALID. EXITTING" << "\n";
-              exit(1);
-            }
-          }
-          else{ //This is a positive constraint
-            if(item == llvmVar_posx){
-              index = 0;
-            }
-            else if(item == llvmVar_posy){
-              index = 1;
-            }
-            else{
-              continue;
-            }
-            
-            if(it[1] == "="){
-              input_box_int[index].first = std::stoi(it[2]);
-              input_box_int[index].second = std::stoi(it[2]);
-            }
-            else if(it[1] == "<"){
-              input_box_int[index].second = std::stoi(it[2])-1;
-            }
-            else if(it[1] == "<="){
-              input_box_int[index].second = std::stoi(it[2]);
-            }
-            else if(it[1] == ">"){
-              input_box_int[index].first = std::stoi(it[2])+1;
-            }
-            else if(it[1] == ">="){
-              input_box_int[index].first = std::stoi(it[2]);
-            }
-            else{
-              crab::outs() << "LIN CST OPERATOR INVALID. EXITTING" << "\n";
-              exit(1);
-            }
-          }
-        }
-      }
-
-      //TODO : sanity check 
-
-      crab::outs() << "Lower and Upper i : " << input_box_int[0].first << " to " << input_box_int[0].second << "\n";
-      crab::outs() << "Lower and Upper j : " << input_box_int[1].first << " to " << input_box_int[1].second << "\n"; 
-
-      //Access the map to check what are possible values
+      //Get a list of the disjuncts separately
+      crab::crab_string_os dj_oss;
+      dj_oss << pre_invs;
+      std::vector<std::string> disjuncts = parse_disjunct_invariants(dj_oss.str()); 
+      
+      //Iterate over each disjunct in pre_invs
       std::vector<int> possible_map_locations;
-      for(int i=input_box_int[0].first; i<=input_box_int[0].second; i++){
-        for(int j=input_box_int[1].first; j<=input_box_int[1].second; j++){
-          //if (i,j) are allowed in the invariants
-          if(std::find(possible_map_locations.begin(), possible_map_locations.end(), map[i][j]) != possible_map_locations.end()){
-            continue;
+      for(auto position_bounds: disjuncts){
+        crab::outs() << "This is are the linear cst in a disjunct : " << position_bounds << "\n";
+        std::vector<std::string> lin_cst;
+        std::vector<std::vector<std::string>> tokens;
+        std::istringstream iss2(position_bounds);
+        while(std::getline(iss2, item, ';')){
+          item = trim(item);
+          std::stringstream ss(item);  //String of individual lin_cst
+          std::istream_iterator<std::string> begin(ss);
+          std::istream_iterator<std::string> end;
+          std::vector<std::string> lin_cst(begin, end); //Convert each linear_cst to its tokens
+          tokens.push_back(lin_cst);
+        }
+
+        std::vector<std::pair<int, int>> input_box_int(2, std::make_pair(0, 0));
+        for(auto it: tokens){
+          if((it.size()!=3) && (it[0]!= "true") && (it[0]!= "false")){
+            crab::outs() << "Malformed lin_cst token. Exitting" << "\n";
+            std::exit(1);
           }
-          else{
-            possible_map_locations.push_back(map[i][j]);
+          else if(it.size()==3){
+            item = it[0]; //String of the llvm variable
+            if(item.at(0)=='-'){
+              item = item.substr(1, item.size()-1);
+              if(item == llvmVar_posx){
+                index = 0;
+              }
+              else if(item == llvmVar_posy){
+                index = 1;
+              }
+              else{
+                continue;
+              }
+
+              if(it[1] == "="){
+                input_box_int[index].first = -1*std::stoi(it[2]);
+                input_box_int[index].second = -1*std::stoi(it[2]);
+              }
+              else if(it[1] == "<"){
+                input_box_int[index].first = -1*std::stoi(it[2])+1;
+              }
+              else if(it[1] == "<="){
+                input_box_int[index].first = -1*std::stoi(it[2]);
+              }
+              else if(it[1] == ">"){
+                input_box_int[index].second = -1*std::stoi(it[2])-1;
+              }
+              else if(it[1] == ">="){
+                input_box_int[index].second = -1*std::stoi(it[2]);
+              }
+              else{
+                crab::outs() << "LIN CST OPERATOR INVALID. EXITTING" << "\n";
+                exit(1);
+              }
+            }
+            else{ //This is a positive constraint
+              if(item == llvmVar_posx){
+                index = 0;
+              }
+              else if(item == llvmVar_posy){
+                index = 1;
+              }
+              else{
+                continue;
+              }
+
+              if(it[1] == "="){
+                input_box_int[index].first = std::stoi(it[2]);
+                input_box_int[index].second = std::stoi(it[2]);
+              }
+              else if(it[1] == "<"){
+                input_box_int[index].second = std::stoi(it[2])-1;
+              }
+              else if(it[1] == "<="){
+                input_box_int[index].second = std::stoi(it[2]);
+              }
+              else if(it[1] == ">"){
+                input_box_int[index].first = std::stoi(it[2])+1;
+              }
+              else if(it[1] == ">="){
+                input_box_int[index].first = std::stoi(it[2]);
+              }
+              else{
+                crab::outs() << "LIN CST OPERATOR INVALID. EXITTING" << "\n";
+                exit(1);
+              }
+            }
+          }
+        }
+
+        //TODO : sanity check
+
+        if(input_box_int[0].first < 0){
+          input_box_int[0].first = 0;
+        }
+        if(input_box_int[0].second > 24){
+          input_box_int[0].second = 24;
+        }
+        if(input_box_int[1].first < 0){
+          input_box_int[1].first = 0;
+        }
+        if(input_box_int[1].second > 24){
+          input_box_int[1].second = 24;
+        }
+
+        crab::outs() << "Lower and Upper i : " << input_box_int[0].first << " to " << input_box_int[0].second << "\n";
+        crab::outs() << "Lower and Upper j : " << input_box_int[1].first << " to " << input_box_int[1].second << "\n"; 
+
+        //Access the map to check what are possible values
+        for(int i=input_box_int[0].first; i<=input_box_int[0].second; i++){
+          for(int j=input_box_int[1].first; j<=input_box_int[1].second; j++){
+            //if (i,j) are allowed in the invariants
+            if(std::find(possible_map_locations.begin(), possible_map_locations.end(), CORNER_MAP[i][j]) != possible_map_locations.end()){
+              continue;
+            }
+            else{
+              possible_map_locations.push_back(CORNER_MAP[i][j]);
+            }
           }
         }
       }
@@ -1058,6 +1123,272 @@ std::string trim(const std::string &s){
       crab::outs() << "This is m_inv projected to z " << tmp << "\n";
       crab::outs() << "This is m_inv projected to z with lin cst " << tmp.to_linear_constraint_system().get_string() << "\n";
       //crab::outs() << "Ended intrinsic" << "\n";
+
+    }
+    else if(cs.get_intrinsic_name() == "access_velocity_traversed_position"){
+      int velocity_to_traversed_positions[6][6][6][6] ={
+        {{{1, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+        {{1, 1, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+        {{1, 1, 1, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+        {{1, 1, 1, 1, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+        {{1, 1, 1, 1, 1, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+        {{1, 1, 1, 1, 1, 1}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}},
+        {{{1, 0, 0, 0, 0, 0}, {1, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+        {{1, 1, 0, 0, 0, 0}, {0, 1, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+        {{1, 1, 0, 0, 0, 0}, {0, 1, 1, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+        {{1, 1, 1, 0, 0, 0}, {0, 0, 1, 1, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+        {{1, 1, 1, 0, 0, 0}, {0, 0, 1, 1, 1, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+        {{1, 1, 1, 1, 0, 0}, {0, 0, 0, 1, 1, 1}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}},
+        {{{1, 0, 0, 0, 0, 0}, {1, 0, 0, 0, 0, 0}, {1, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+        {{1, 0, 0, 0, 0, 0}, {1, 1, 0, 0, 0, 0}, {0, 1, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+        {{1, 1, 0, 0, 0, 0}, {0, 1, 1, 0, 0, 0}, {0, 0, 1, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+        {{1, 1, 0, 0, 0, 0}, {0, 1, 1, 0, 0, 0}, {0, 0, 1, 1, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+        {{1, 1, 0, 0, 0, 0}, {0, 1, 1, 1, 0, 0}, {0, 0, 0, 1, 1, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+        {{1, 1, 0, 0, 0, 0}, {0, 1, 1, 1, 1, 0}, {0, 0, 0, 0, 1, 1}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}},
+        {{{1, 0, 0, 0, 0, 0}, {1, 0, 0, 0, 0, 0}, {1, 0, 0, 0, 0, 0}, {1, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+        {{1, 0, 0, 0, 0, 0}, {1, 1, 0, 0, 0, 0}, {0, 1, 0, 0, 0, 0}, {0, 1, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+        {{1, 0, 0, 0, 0, 0}, {1, 1, 0, 0, 0, 0}, {0, 1, 1, 0, 0, 0}, {0, 0, 1, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+        {{1, 1, 0, 0, 0, 0}, {0, 1, 1, 0, 0, 0}, {0, 0, 1, 1, 0, 0}, {0, 0, 0, 1, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+        {{1, 1, 0, 0, 0, 0}, {0, 1, 1, 0, 0, 0}, {0, 0, 1, 1, 0, 0}, {0, 0, 0, 1, 1, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+        {{1, 1, 0, 0, 0, 0}, {0, 1, 1, 1, 0, 0}, {0, 0, 0, 1, 1, 0}, {0, 0, 0, 0, 1, 1}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}},
+        {{{1, 0, 0, 0, 0, 0}, {1, 0, 0, 0, 0, 0}, {1, 0, 0, 0, 0, 0}, {1, 0, 0, 0, 0, 0}, {1, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+        {{1, 0, 0, 0, 0, 0}, {1, 0, 0, 0, 0, 0}, {1, 1, 0, 0, 0, 0}, {0, 1, 0, 0, 0, 0}, {0, 1, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+        {{1, 0, 0, 0, 0, 0}, {1, 1, 0, 0, 0, 0}, {0, 1, 0, 0, 0, 0}, {0, 1, 1, 0, 0, 0}, {0, 0, 1, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
+        {{1, 0, 0, 0, 0, 0}, {1, 1, 0, 0, 0, 0}, {0, 1, 1, 0, 0, 0}, {0, 0, 1, 1, 0, 0}, {0, 0, 0, 1, 0, 0}, {0, 0, 0, 0, 0, 0}},
+        {{1, 1, 0, 0, 0, 0}, {0, 1, 1, 0, 0, 0}, {0, 0, 1, 1, 0, 0}, {0, 0, 0, 1, 1, 0}, {0, 0, 0, 0, 1, 0}, {0, 0, 0, 0, 0, 0}},
+        {{1, 1, 0, 0, 0, 0}, {0, 1, 1, 0, 0, 0}, {0, 0, 1, 1, 0, 0}, {0, 0, 0, 1, 1, 0}, {0, 0, 0, 0, 1, 1}, {0, 0, 0, 0, 0, 0}}},
+        {{{1, 0, 0, 0, 0, 0}, {1, 0, 0, 0, 0, 0}, {1, 0, 0, 0, 0, 0}, {1, 0, 0, 0, 0, 0}, {1, 0, 0, 0, 0, 0}, {1, 0, 0, 0, 0, 0}},
+        {{1, 0, 0, 0, 0, 0}, {1, 0, 0, 0, 0, 0}, {1, 1, 0, 0, 0, 0}, {0, 1, 0, 0, 0, 0}, {0, 1, 0, 0, 0, 0}, {0, 1, 0, 0, 0, 0}},
+        {{1, 0, 0, 0, 0, 0}, {1, 1, 0, 0, 0, 0}, {0, 1, 0, 0, 0, 0}, {0, 1, 0, 0, 0, 0}, {0, 1, 1, 0, 0, 0}, {0, 0, 1, 0, 0, 0}},
+        {{1, 0, 0, 0, 0, 0}, {1, 1, 0, 0, 0, 0}, {0, 1, 1, 0, 0, 0}, {0, 0, 1, 0, 0, 0}, {0, 0, 1, 1, 0, 0}, {0, 0, 0, 1, 0, 0}},
+        {{1, 0, 0, 0, 0, 0}, {1, 1, 0, 0, 0, 0}, {0, 1, 1, 0, 0, 0}, {0, 0, 1, 1, 0, 0}, {0, 0, 0, 1, 1, 0}, {0, 0, 0, 0, 1, 0}},
+        {{1, 1, 0, 0, 0, 0}, {0, 1, 1, 0, 0, 0}, {0, 0, 1, 1, 0, 0}, {0, 0, 0, 1, 1, 0}, {0, 0, 0, 0, 1, 1}, {0, 0, 0, 0, 0, 1}}}
+      };
+
+      AbsD pre_invs(m_inv);
+      std::vector<var_t> args_list = cs.get_args();
+      std::vector<var_t> velocity_vars;
+      velocity_vars.push_back(args_list[0]);
+      velocity_vars.push_back(args_list[1]);
+      velocity_vars.push_back(args_list[2]);
+      velocity_vars.push_back(args_list[3]);
+
+      //get string name of vx, vy, steps
+      std::string call_st = cs.get_string();
+      crab::outs() << "This is the call statement : " << call_st << "\n";
+      call_st = call_st.substr(call_st.find("(") + 1, call_st.find(")") - call_st.find("(") - 1);
+      std::istringstream iss1(call_st);
+      int index=0;
+      std::string llvmVar_vx, llvmVar_vy, llvmVar_stepvx, llvmVar_stepvy,llvmVar_return;
+      std::string item;
+      while(std::getline(iss1, item, ',')){
+        if(index == 0){
+          if(item.substr(0, item.find(":")) != "access_velocity_traversed_position"){
+            crab::outs() << "Malformed instrinsic statement call" << "\n";
+            std::exit(1);
+          }
+        }
+        else if(index == 1){
+          llvmVar_vx = item.substr(0, item.find(":"));
+        }
+        else if(index == 2){
+          llvmVar_vy = item.substr(0, item.find(":"));
+        }
+        else if(index == 3){
+          llvmVar_stepvx = item.substr(0, item.find(":"));
+        }
+        else if(index == 4){
+          llvmVar_stepvy = item.substr(0, item.find(":"));
+        }
+        else if(index == 5){
+          llvmVar_return = item.substr(0, item.find(":"));
+        }
+        else{
+          crab::outs() << "More than expected arguements passed" << "\n";
+          std::exit(1);
+        }
+        index++;
+      }
+
+      //Get linear constraints on the position_vars
+      crab::outs() << "This is everything : " << pre_invs << "\n";
+      pre_invs.project(velocity_vars);
+      auto pre_invars = pre_invs.to_linear_constraint_system();
+      std::string velocity_bounds = pre_invars.get_string();
+      crab::outs() << "This is are the linear cst : " << velocity_bounds << "\n";
+      velocity_bounds = velocity_bounds.substr(1, velocity_bounds.size()-2);
+      std::vector<std::string> lin_cst;
+      std::vector<std::vector<std::string>> tokens;
+      std::istringstream iss2(velocity_bounds);
+      while(std::getline(iss2, item, ';')){
+        item = trim(item);
+        std::stringstream ss(item);  //String of individual lin_cst
+        std::istream_iterator<std::string> begin(ss);
+        std::istream_iterator<std::string> end;
+        std::vector<std::string> lin_cst(begin, end); //Convert each linear_cst to its tokens
+        tokens.push_back(lin_cst);
+      }
+
+      std::vector<std::pair<int, int>> input_box_int(4, std::make_pair(0, 0));
+      for(auto it: tokens){
+        if((it.size()!=3) && (it[0]!= "true") && (it[0]!= "false")){
+          crab::outs() << "Malformed lin_cst token. Exitting" << "\n";
+          std::exit(1);
+        }
+        else if(it.size()==3){
+          item = it[0]; //String of the llvm variable
+          if(item.at(0)=='-'){
+            item = item.substr(1, item.size()-1);
+            if(item == llvmVar_vx){
+              index = 0;
+            }
+            else if(item == llvmVar_vy){
+              index = 1;
+            }
+            else if(item == llvmVar_stepvx){
+              index = 2;
+            }
+            else if(item == llvmVar_stepvy){
+              index = 3;
+            }
+            else{
+              continue;
+            }
+
+            if(it[1] == "="){
+              input_box_int[index].first = -1*std::stoi(it[2]);
+              input_box_int[index].second = -1*std::stoi(it[2]);
+            }
+            else if(it[1] == "<"){
+              input_box_int[index].first = -1*std::stoi(it[2])+1;
+            }
+            else if(it[1] == "<="){
+              input_box_int[index].first = -1*std::stoi(it[2]);
+            }
+            else if(it[1] == ">"){
+              input_box_int[index].second = -1*std::stoi(it[2])-1;
+            }
+            else if(it[1] == ">="){
+              input_box_int[index].second = -1*std::stoi(it[2]);
+            }
+            else{
+              crab::outs() << "LIN CST OPERATOR INVALID. EXITTING" << "\n";
+              exit(1);
+            }
+          }
+          else{ //This is a positive constraint
+            if(item == llvmVar_vx){
+              index = 0;
+            }
+            else if(item == llvmVar_vy){
+              index = 1;
+            }
+            else if(item == llvmVar_stepvx){
+              index = 2;
+            }
+            else if(item == llvmVar_stepvy){
+              index = 3;
+            }
+            else{
+              continue;
+            }
+            
+            if(it[1] == "="){
+              input_box_int[index].first = std::stoi(it[2]);
+              input_box_int[index].second = std::stoi(it[2]);
+            }
+            else if(it[1] == "<"){
+              input_box_int[index].second = std::stoi(it[2])-1;
+            }
+            else if(it[1] == "<="){
+              input_box_int[index].second = std::stoi(it[2]);
+            }
+            else if(it[1] == ">"){
+              input_box_int[index].first = std::stoi(it[2])+1;
+            }
+            else if(it[1] == ">="){
+              input_box_int[index].first = std::stoi(it[2]);
+            }
+            else{
+              crab::outs() << "LIN CST OPERATOR INVALID. EXITTING" << "\n";
+              exit(1);
+            }
+          }
+        }
+      }
+
+      //TODO : sanity check
+
+      if(input_box_int[0].first < 0){
+        input_box_int[0].first = 0;
+      }
+      if(input_box_int[0].second > 5){
+        input_box_int[0].second = 5;
+      }
+      if(input_box_int[1].first < 0){
+        input_box_int[1].first = 0;
+      }
+      if(input_box_int[1].second > 5){
+        input_box_int[1].second = 24;
+      }
+      if(input_box_int[2].first < 0){
+        input_box_int[2].first = 0;
+      }
+      if(input_box_int[2].second > 5){
+        input_box_int[2].second = 5;
+      }
+      if(input_box_int[3].first < 0){
+        input_box_int[3].first = 0;
+      }
+      if(input_box_int[3].second > 5){
+        input_box_int[3].second = 5;
+      }
+
+      crab::outs() << "Lower and Upper vx : " << input_box_int[0].first << " to " << input_box_int[0].second << "\n";
+      crab::outs() << "Lower and Upper vy : " << input_box_int[1].first << " to " << input_box_int[1].second << "\n";
+      crab::outs() << "Lower and Upper step_vx : " << input_box_int[2].first << " to " << input_box_int[2].second << "\n";
+      crab::outs() << "Lower and Upper step_vy : " << input_box_int[3].first << " to " << input_box_int[3].second << "\n"; 
+
+      //Access the array to check what are possible return values
+      std::vector<int> possible_returns;
+      int ret;
+      int yes=0, no=0;
+      for(int i=input_box_int[0].first; i<=input_box_int[0].second; i++){
+        for(int j=input_box_int[1].first; j<=input_box_int[1].second; j++){
+          for(int k=input_box_int[2].first; k<= input_box_int[2].second; k++){
+            for(int l=input_box_int[3].first; l<= input_box_int[3].second; l++){
+              if(velocity_to_traversed_positions[i][j][k][l]){
+                yes++;
+              }
+              else{
+                no++;
+              }
+            }
+          }
+        }
+      }
+
+      if(yes){
+        possible_returns.push_back(1);
+      }
+      if(no){
+        possible_returns.push_back(0);
+      }
+
+      //Push llvmVar_return into invariants
+      abs_dom_t boxes = abs_dom_t::bottom();
+      var_t ret_value = args_list[4];
+
+      for (auto p: possible_returns) { 
+        crab::outs() << "Possible return " << p << "\n";
+        abs_dom_t conjunction = abs_dom_t::top(); 
+        lin_cst_t cst(ret_value == number_t(p));
+        conjunction += cst; 
+        boxes |= conjunction;
+        crab::outs() << "Boxes disjuncts : " << boxes << "\n";
+      }
+
+      m_inv = m_inv&boxes;
 
     }
     else if(cs.get_intrinsic_name() == "dummy_one"){
