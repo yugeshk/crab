@@ -965,19 +965,22 @@ public:
         }
         index++;
       }
+
+
       //Get linear constraints on the position_vars
-      crab::outs() << "This is everything : " << pre_invs << "\n";
-      pre_invs.project(position_vars);
+      crab::outs() << "All invariants at entry : " << pre_invs << "\n";
+      auto djct_csts = pre_invs.to_disjunctive_linear_constraint_system();
 
       //Get a list of the disjuncts separately
-      crab::crab_string_os dj_oss;
-      dj_oss << pre_invs;
-      std::vector<std::string> disjuncts = parse_disjunct_invariants(dj_oss.str()); 
+      // crab::crab_string_os dj_oss;
+      // dj_oss << pre_invs;
+      // std::vector<std::string> disjuncts = parse_disjunct_invariants(dj_oss.str()); 
       
       //Iterate over each disjunct in pre_invs
-      std::vector<int> possible_map_locations;
-      for(auto position_bounds: disjuncts){
-        crab::outs() << "This is are the linear cst in a disjunct : " << position_bounds << "\n";
+      abs_dom_t new_m_inv = abs_dom_t::bottom();
+      for(auto &d_ct: djct_csts){
+        std::string position_bounds = d_ct.get_string();
+        crab::outs() << "\n\nThis is the linear cst in a disjunct : " << position_bounds << "\n";
         std::vector<std::string> lin_cst;
         std::vector<std::vector<std::string>> tokens;
         std::istringstream iss2(position_bounds);
@@ -1085,6 +1088,7 @@ public:
         crab::outs() << "Lower and Upper j : " << input_box_int[1].first << " to " << input_box_int[1].second << "\n"; 
 
         //Access the map to check what are possible values
+        std::vector<int> possible_map_locations;
         for(int i=input_box_int[0].first; i<=input_box_int[0].second; i++){
           for(int j=input_box_int[1].first; j<=input_box_int[1].second; j++){
             //if (i,j) are allowed in the invariants
@@ -1096,29 +1100,34 @@ public:
             }
           }
         }
+      
+        //Push llvmVar_return into invariants
+        abs_dom_t boxes = abs_dom_t::bottom();
+        var_t z = args_list[2];
+
+        for (auto p: possible_map_locations) { 
+          crab::outs() << "Possible location " << p << "\n";
+          abs_dom_t conjunction = abs_dom_t::top(); 
+          lin_cst_t cst(z == number_t(p));
+          conjunction += cst; 
+          boxes |= conjunction;
+        }
+        crab::outs() << "Boxes disjuncts : " << boxes << "\n\n\n";
+        
+        abs_dom_t dct = abs_dom_t::top();
+        dct += d_ct;
+        new_m_inv |= dct&boxes;
+
       }
 
-      //Push llvmVar_return into invariants
-      abs_dom_t boxes = abs_dom_t::bottom();
-      var_t z = args_list[2];
-
-      for (auto p: possible_map_locations) { 
-        crab::outs() << "Possible location " << p << "\n";
-        abs_dom_t conjunction = abs_dom_t::top(); 
-        lin_cst_t cst(z == number_t(p));
-        conjunction += cst; 
-        boxes |= conjunction;
-        crab::outs() << "Boxes disjuncts : " << boxes << "\n";
-      }
-
-      m_inv = m_inv&boxes;
+      m_inv = new_m_inv;
 
       crab::outs() << "This is m_inv : " << m_inv << "\n";
       crab::outs() << "This is m_inv lin cst: " << m_inv.to_linear_constraint_system().get_string() << "\n";
 
       AbsD tmp(m_inv);
       std::vector<var_t> tempo;
-      tempo.push_back(z);
+      tempo.push_back(args_list[2]);
       tmp.project(tempo);
       crab::outs() << "This is m_inv projected to z " << tmp << "\n";
       crab::outs() << "This is m_inv projected to z with lin cst " << tmp.to_linear_constraint_system().get_string() << "\n";
