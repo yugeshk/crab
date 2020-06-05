@@ -670,8 +670,6 @@ public:
 
       //Step 1 : Prepare input_box_int
       AbsD pre_invs(m_inv);
-      pre_invs.project(cs.get_args()); //These are linear constraints projected to llvm variables
-      auto pre_invars = pre_invs.to_linear_constraint_system();
       std::vector<var_t> args_list = cs.get_args();
       std::string call_st = cs.get_string();
 
@@ -703,197 +701,249 @@ public:
         fv_index++;
       }
 
-      std::string invars = pre_invars.get_string(); //get string from pre_invars
-      if(invars.size() < 2 || invars.at(0) != '{' || invars.at(invars.size()-1) != '}'){
-        crab::outs() << "Malformed lin_cst string in intrinsic (check variable pre_invars)" << "\n";
-        std::exit(1);
-      }
+      //Get Invariants
+      crab::outs() << "All invariants at entry : " << pre_invs << "\n";
+      auto djct_csts = pre_invs.to_disjunctive_linear_constraint_system();
 
-      invars = invars.substr(1, invars.size()-2); //Stripped the braces
-      std::vector<std::string> lin_cst;
-      std::vector<std::vector<std::string>> tokens;
-      std::istringstream iss2(invars);
-      while(std::getline(iss2, item, ';')){
-        item = trim(item);
-        std::stringstream ss(item);  //String of individual lin_cst
-        std::istream_iterator<std::string> begin(ss);
-        std::istream_iterator<std::string> end;
-        std::vector<std::string> lin_cst(begin, end); //Convert each linear_cst to its tokens
-        tokens.push_back(lin_cst);
-      }
-
-      std::vector<std::pair<int, int>> input_box_int(14, std::make_pair(0, 0));
-
-      for(auto it: tokens){
-        if((it.size()!=3) && (it[0]!= "true") && (it[0]!= "false")){
-          crab::outs() << "Malformed lin_cst token. Exitting" << "\n";
+      abs_dom_t new_m_inv = abs_dom_t::bottom();
+      for(auto &d_ct: djct_csts){
+        std::string invars = d_ct.get_string(); //get string from pre_invars
+        crab::outs() << "\n\nThis is the linear cst in a disjunct : " << invars << "\n";
+        if(invars.size() < 2 || invars.at(0) != '{' || invars.at(invars.size()-1) != '}'){
+          crab::outs() << "Malformed lin_cst string in intrinsic (check variable pre_invars)" << "\n";
           std::exit(1);
         }
-        else if(it.size()==3){
-          item = it[0]; //String of the llvm variable
-          if(item.at(0)=='-'){
-            item = item.substr(1, item.size()-1);
-            if(llvmVar_featureIndex_map.find(item) != llvmVar_featureIndex_map.end()){
-              fv_index = llvmVar_featureIndex_map.at(item);
-              if(it[1] == "="){
-                input_box_int[fv_index-1].first = -1*std::stoi(it[2]);
-                input_box_int[fv_index-1].second = -1*std::stoi(it[2]);
-              }
-              else if(it[1] == "<"){
-                input_box_int[fv_index-1].first = -1*std::stoi(it[2])+1;
-              }
-              else if(it[1] == "<="){
-                input_box_int[fv_index-1].first = -1*std::stoi(it[2]);
-              }
-              else if(it[1] == ">"){
-                input_box_int[fv_index-1].second = -1*std::stoi(it[2])-1;
-              }
-              else if(it[1] == ">="){
-                input_box_int[fv_index-1].second = -1*std::stoi(it[2]);
-              }
-              else{
-                crab::outs() << "LIN CST OPERATOR INVALID. EXITTING" << "\n";
-                exit(1);
+
+        invars = invars.substr(1, invars.size()-2); //Stripped the braces
+        std::vector<std::string> lin_cst;
+        std::vector<std::vector<std::string>> tokens;
+        std::istringstream iss2(invars);
+        while(std::getline(iss2, item, ';')){
+          item = trim(item);
+          std::stringstream ss(item);  //String of individual lin_cst
+          std::istream_iterator<std::string> begin(ss);
+          std::istream_iterator<std::string> end;
+          std::vector<std::string> lin_cst(begin, end); //Convert each linear_cst to its tokens
+          tokens.push_back(lin_cst);
+        }
+      
+        std::vector<std::pair<int, int>> input_box_int(14, std::make_pair(0, 0));
+
+        for(auto it: tokens){
+          if((it.size()!=3) && (it[0]!= "true") && (it[0]!= "false")){
+            crab::outs() << "Malformed lin_cst token. Exitting" << "\n";
+            std::exit(1);
+          }
+          else if(it.size()==3){
+            item = it[0]; //String of the llvm variable
+            if(item.at(0)=='-'){
+              item = item.substr(1, item.size()-1);
+              if(llvmVar_featureIndex_map.find(item) != llvmVar_featureIndex_map.end()){
+                fv_index = llvmVar_featureIndex_map.at(item);
+                if(it[1] == "="){
+                  input_box_int[fv_index-1].first = -1*std::stoi(it[2]);
+                  input_box_int[fv_index-1].second = -1*std::stoi(it[2]);
+                }
+                else if(it[1] == "<"){
+                  input_box_int[fv_index-1].first = -1*std::stoi(it[2])+1;
+                }
+                else if(it[1] == "<="){
+                  input_box_int[fv_index-1].first = -1*std::stoi(it[2]);
+                }
+                else if(it[1] == ">"){
+                  input_box_int[fv_index-1].second = -1*std::stoi(it[2])-1;
+                }
+                else if(it[1] == ">="){
+                  input_box_int[fv_index-1].second = -1*std::stoi(it[2]);
+                }
+                else{
+                  crab::outs() << "LIN CST OPERATOR INVALID. EXITTING" << "\n";
+                  exit(1);
+                }
               }
             }
-          }
-          else{
-            if(llvmVar_featureIndex_map.find(item) != llvmVar_featureIndex_map.end()){
-              fv_index = llvmVar_featureIndex_map.at(item);
-              if(it[1] == "="){
-                input_box_int[fv_index-1].first = std::stoi(it[2]);
-                input_box_int[fv_index-1].second = std::stoi(it[2]);
-              }
-              else if(it[1] == "<"){
-                input_box_int[fv_index-1].second = std::stoi(it[2])-1;
-              }
-              else if(it[1] == "<="){
-                input_box_int[fv_index-1].second = std::stoi(it[2]);
-              }
-              else if(it[1] == ">"){
-                input_box_int[fv_index-1].first = std::stoi(it[2])+1;
-              }
-              else if(it[1] == ">="){
-                input_box_int[fv_index-1].first = std::stoi(it[2]);
-              }
-              else{
-                crab::outs() << "LIN CST OPERATOR INVALID. EXITTING" << "\n";
-                exit(1);
+            else{
+              if(llvmVar_featureIndex_map.find(item) != llvmVar_featureIndex_map.end()){
+                fv_index = llvmVar_featureIndex_map.at(item);
+                if(it[1] == "="){
+                  input_box_int[fv_index-1].first = std::stoi(it[2]);
+                  input_box_int[fv_index-1].second = std::stoi(it[2]);
+                }
+                else if(it[1] == "<"){
+                  input_box_int[fv_index-1].second = std::stoi(it[2])-1;
+                }
+                else if(it[1] == "<="){
+                  input_box_int[fv_index-1].second = std::stoi(it[2]);
+                }
+                else if(it[1] == ">"){
+                  input_box_int[fv_index-1].first = std::stoi(it[2])+1;
+                }
+                else if(it[1] == ">="){
+                  input_box_int[fv_index-1].first = std::stoi(it[2]);
+                }
+                else{
+                  crab::outs() << "LIN CST OPERATOR INVALID. EXITTING" << "\n";
+                  exit(1);
+                }
               }
             }
           }
         }
-      }
 
-      crab::outs() << "Making deepsymbol call" << "\n";
-
-      //Step 2 : Make the call to DeepSymbol
-      int fd1[2];
-      int fd2[2];
-      pid_t p;
-
-      if(pipe(fd1) == -1 || pipe(fd2) == -1){                                          
-        crab::outs() << "Could not create pipes." << "\n";                               
-        exit(1);                                                                 
-      }
-
-      p = fork();                                                                  
-                                                                                  
-      if(p < 0){                                                                   
-        crab::outs() << "Fork failed." << "\n";                                          
-        exit(1);                                                                                                                                                                                                                          
-      }                                                                            
-                                                                                  
-      //Parent process - CRAB                                                      
-      //Assuming we have formed our input in input_box_int                         
-      else if(p > 0){                                                              
-        close(fd1[0]); //close reading end of first pipe                         
-                                                                                  
-        int arr[28];                                                             
-        for(int i=0;i<14;i++){                                                   
-          arr[2*i] = input_box_int[i].first;                                   
-          arr[2*i+1] = input_box_int[i].second;                                
-        }                                                                        
-                                                                                   
-        //Write the input to the pipe and close writing end                      
-        write(fd1[1], (const void* )(arr), 28*sizeof(int));                      
-        close(fd1[1]); // close writing end of first pipe                        
-                                                                                   
-        //Wait for child                                                         
-        wait(NULL);                                                              
-                                                                                   
-        close(fd2[1]); //close writing end of second pipe                        
-                                                                                   
-        //Read from the input of second pipe                                     
-        int out_size;                                                            
-        read(fd2[0], (void *)(&out_size), sizeof(int));                          
-        int *out_arr = (int *)(calloc(out_size, sizeof(int)));                   
-        read(fd2[0], (void *)(out_arr), 2*out_size*sizeof(int));                 
-                                                                                   
-        std::vector<std::pair<int, int>> output_box_int;                         
-        for(int i=0;i<out_size;i+=2){                                            
-          output_box_int.push_back(std::pair<int, int>(out_arr[i], out_arr[i+1]));  
-        }                                                                        
-                                                                                   
-        close(fd2[0]); //close reading end of second pipe   
-
-        //Step 3 : Get the return value and make disjunctive_constraints                     
-        //Print the output - will be converted to disjuncts                      
-        // crab::outs << "Number of actions received : " << out_size << "\n";   
-        // int count=1;                                                             
-        // for(auto it: output_box_int){                                            
-        //   cout << "Action number " << count << " : " << it.first << "," << it.second << endl;
-        //   count++;                                                             
-        // }
-
-        crab::outs() << "CALL TO DEEPSYMBOL SUCCESSFUL\n\n";
-        //Create linear_constraint
-
-        var_t ax = args_list[14];
-        var_t ay = args_list[15];
-        abs_dom_t boxes = abs_dom_t::bottom();
-
-        for (auto &p: output_box_int) {
-          abs_dom_t conjunction = abs_dom_t::top(); 
-          lin_cst_t cst1(ax == number_t(p.first));
-          lin_cst_t cst2(ay == number_t(p.second));
-          conjunction += cst1;
-          conjunction += cst2; 
-          boxes |= conjunction;
+        //Sanitize Input Box Int
+        for(int i=0;i<14;i++){
+          //position
+          if(i == 0 || i ==1){
+            if(input_box_int[i].first < 0){
+              input_box_int[i].first = 0;
+            }
+            if(input_box_int[i].second > 24){
+              input_box_int[i].second = 24;
+            }
+          }
+          else if(i == 1 || i ==2){
+            if(input_box_int[i].first < 0){
+              input_box_int[i].first = 0;
+            }
+            if(input_box_int[i].second > 5){
+              input_box_int[i].second = 5;
+            }
+          }
+          else if(i>2 && i<12){
+            if(input_box_int[i].first < 1){ //Distance to wall can never be 0
+              input_box_int[i].first = 1;
+            }
+            if(input_box_int[i].second > 50){
+              input_box_int[i].second = 50;
+            }
+          }
+          else if(i == 12 || i == 13){
+            if(input_box_int[i].first < 0){
+              input_box_int[i].first = 0;
+            }
+            if(input_box_int[i].second > 50){
+              input_box_int[i].second = 50;
+            }
+          }
         }
 
-        m_inv = m_inv&boxes;
+        crab::outs() << "Making deepsymbol call" << "\n";
 
-      }                                                                            
+        //Step 2 : Make the call to DeepSymbol
+        int fd1[2];
+        int fd2[2];
+        pid_t p;
+
+        if(pipe(fd1) == -1 || pipe(fd2) == -1){                                          
+          crab::outs() << "Could not create pipes." << "\n";                               
+          exit(1);                                                                 
+        }
+
+        p = fork();                                                                  
+
+        if(p < 0){                                                                   
+          crab::outs() << "Fork failed." << "\n";                                          
+          exit(1);                                                                                                                                                                                                                          
+        }                                                                            
+                                                                                  
+        //Parent process - CRAB                                                      
+        //Assuming we have formed our input in input_box_int                         
+        else if(p > 0){                                                              
+          close(fd1[0]); //close reading end of first pipe                         
+
+          int arr[28];                                                             
+          for(int i=0;i<14;i++){                                                   
+            arr[2*i] = input_box_int[i].first;                                   
+            arr[2*i+1] = input_box_int[i].second;                                
+          }                                                                        
+
+          //Write the input to the pipe and close writing end                      
+          write(fd1[1], (const void* )(arr), 28*sizeof(int));                      
+          close(fd1[1]); // close writing end of first pipe                        
+
+          //Wait for child                                                         
+          wait(NULL);                                                              
+
+          close(fd2[1]); //close writing end of second pipe                        
+
+          //Read from the input of second pipe                                     
+          int out_size;                                                            
+          read(fd2[0], (void *)(&out_size), sizeof(int));                          
+          int *out_arr = (int *)(calloc(out_size, sizeof(int)));                   
+          read(fd2[0], (void *)(out_arr), 2*out_size*sizeof(int));                 
+
+          std::vector<std::pair<int, int>> output_box_int;                         
+          for(int i=0;i<out_size;i+=2){                                            
+            output_box_int.push_back(std::pair<int, int>(out_arr[i], out_arr[i+1]));  
+          }                                                                        
+
+          close(fd2[0]); //close reading end of second pipe   
+
+          //Step 3 : Get the return value and make disjunctive_constraints                     
+          //Print the output - will be converted to disjuncts                      
+          // crab::outs << "Number of actions received : " << out_size << "\n";   
+          // int count=1;                                                             
+          // for(auto it: output_box_int){                                            
+          //   cout << "Action number " << count << " : " << it.first << "," << it.second << endl;
+          //   count++;                                                             
+          // }
+
+          crab::outs() << "CALL TO DEEPSYMBOL SUCCESSFUL\n\n";
+          //Create linear_constraint
+
+          var_t ax = args_list[14];
+          var_t ay = args_list[15];
+          abs_dom_t boxes = abs_dom_t::bottom();
+
+          for (auto &p: output_box_int) {
+            abs_dom_t conjunction = abs_dom_t::top(); 
+            lin_cst_t cst1(ax == number_t(p.first));
+            lin_cst_t cst2(ay == number_t(p.second));
+            conjunction += cst1;
+            conjunction += cst2; 
+            boxes |= conjunction;
+          }
+
+          crab::outs() << "Acceleration disjuncts : " << boxes << "\n\n\n";
+        
+          abs_dom_t dct = abs_dom_t::top();
+          dct += d_ct;
+          new_m_inv |= dct&boxes;
+
+        }                                                                            
                                                                                    
-      //Child process - after reqd manipulation, we exec to deepsymbol middleware  
-      else{                                                                              
-        close(fd1[1]); //close writing end of the first pipe                     
-        close(fd2[0]); //close reading end of second pipe                        
+        //Child process - after reqd manipulation, we exec to deepsymbol middleware  
+        else{                                                                              
+          close(fd1[1]); //close writing end of the first pipe                     
+          close(fd2[0]); //close reading end of second pipe                        
                                                                                  
-        //Read bound integers from first pipe                                    
-        int *bounds_arr = (int *)(malloc(28*sizeof(int)));                       
+          //Read bound integers from first pipe                                    
+          int *bounds_arr = (int *)(malloc(28*sizeof(int)));                       
                                                                                  
-        read(fd1[0], (void *)(bounds_arr), 28*sizeof(int));                      
+          read(fd1[0], (void *)(bounds_arr), 28*sizeof(int));                      
                                                                                  
-        //Convert to char * for exec                                             
-        //31 args to middleware: 1 path, 1 fd, 28 bounds, NULL                   
-        char *args[31];                                                          
-        args[0] = (char *)(malloc(43*sizeof(char)));                             
-        args[0] = "/deepsymbol/middleware";                   
-        args[1] = (char *)(malloc(sizeof(int)+sizeof(char)));                    
-        sprintf(args[1], "%d\0", fd2[1]); //File descriptor for child process to write to
-        for(int i=2; i<30; i++){                                                 
+          //Convert to char * for exec                                             
+          //31 args to middleware: 1 path, 1 fd, 28 bounds, NULL                   
+          char *args[31];                                                          
+          args[0] = (char *)(malloc(43*sizeof(char)));                             
+          args[0] = "/deepsymbol/middleware";                   
+          args[1] = (char *)(malloc(sizeof(int)+sizeof(char)));                    
+          sprintf(args[1], "%d\0", fd2[1]); //File descriptor for child process to write to
+          for(int i=2; i<30; i++){                                                 
             args[i] = (char *)(malloc(sizeof(int)+sizeof(char)));                
             sprintf(args[i], "%d\0", bounds_arr[i-2]);                           
-        }                                                                        
-       args[30] = NULL;                                                         
+          }                                                                        
+          args[30] = NULL;                                                         
                                                                                 
-       close(fd1[0]);                                                           
-       execv(args[0], args);                                                    
-       crab::outs() << "Failed to execute deepsymbol" << "\n";                          
-       exit(1);                                                                                                                      
-      }                    
+          close(fd1[0]);                                                           
+          execv(args[0], args);                                                    
+          crab::outs() << "Failed to execute deepsymbol" << "\n";                          
+          exit(1);                                                                                                                      
+        }
+
+      }
+
+      m_inv = new_m_inv;                    
     }
     else if(cs.get_intrinsic_name() == "eran"){
       //Handle eran call
@@ -1069,8 +1119,7 @@ public:
           }
         }
 
-        //TODO : sanity check
-
+        //sanity check
         if(input_box_int[0].first < 0){
           input_box_int[0].first = 0;
         }
