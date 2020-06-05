@@ -648,8 +648,9 @@ public:
     time_t t;
     logging = std::fopen("/clam/custom_logging/intrinsic.log", "a+");
     time(&t);
-    std::fprintf(logging, "Reached a crab intrinsic at %s, please chcek appropriate logs", ctime(&t));
+    std::fprintf(logging, "Reached crab intrinsic %s at %s please chcek appropriate logs\n", cs.get_intrinsic_name(), ctime(&t));
     fclose(logging);
+    crab::outs() << "Reached crab intrinsic " << cs.get_intrinsic_name() << " at " << ctime(&t) << "\n";
 
     //Time logger intrinsic
     if(cs.get_intrinsic_name() == "logger"){
@@ -663,16 +664,19 @@ public:
     //Handle deepsymbol call
     else if(cs.get_intrinsic_name() == "deepsymbol"){
 
-      logging = std::fopen("/clam/custom_logger/deepsymbol.log", "a+");
-      time(&t);
-      std::fprintf(logging, "Running deepsymbol intrinsic at : %s", ctime(&t));
-      fclose(logging);
+      //logging = std::fopen("/clam/custom_logger/deepsymbol.log", "a+");
+      //time(&t);
+      //std::fprintf(logging, "Running deepsymbol intrinsic at : %s", ctime(&t));
+      //fclose(logging);
+
+      crab::outs() << "Entering the deepsymbol intrinsic\n";
 
       //Step 1 : Prepare input_box_int
       AbsD pre_invs(m_inv);
       std::vector<var_t> args_list = cs.get_args();
       std::string call_st = cs.get_string();
 
+      crab::outs() << "This is the call statement : " << call_st << "\n";
       std::map<std::string, int> llvmVar_featureIndex_map;
       //Populate the map
       call_st = call_st.substr(call_st.find("(") + 1, call_st.find(")") - call_st.find("(") - 1);
@@ -1020,7 +1024,11 @@ public:
       //Get linear constraints on the position_vars
       crab::outs() << "All invariants at entry : " << pre_invs << "\n";
       auto djct_csts = pre_invs.to_disjunctive_linear_constraint_system();
-
+      crab::outs() << "This is the disjunctive_linear_cst : " << djct_csts.get_string() << "\n";
+      crab::outs() << "This is the linear_cst : " << pre_invs.to_linear_constraint_system().get_string() << "\n";
+      
+      
+      
       //Get a list of the disjuncts separately
       // crab::crab_string_os dj_oss;
       // dj_oss << pre_invs;
@@ -1030,7 +1038,8 @@ public:
       abs_dom_t new_m_inv = abs_dom_t::bottom();
       for(auto &d_ct: djct_csts){
         std::string position_bounds = d_ct.get_string();
-        crab::outs() << "\n\nThis is the linear cst in a disjunct : " << position_bounds << "\n";
+        position_bounds = position_bounds.substr(1, position_bounds.size()-2);
+        crab::outs() << "\nThis is the linear cst in a disjunct : " << position_bounds << "\n";
         std::vector<std::string> lin_cst;
         std::vector<std::vector<std::string>> tokens;
         std::istringstream iss2(position_bounds);
@@ -1118,7 +1127,10 @@ public:
             }
           }
         }
-
+        crab::outs() << "*******Unsanitized*******\n";
+        crab::outs() << "Lower and Upper i : " << input_box_int[0].first << " to " << input_box_int[0].second << "\n";
+        crab::outs() << "Lower and Upper j : " << input_box_int[1].first << " to " << input_box_int[1].second << "\n";
+        crab::outs() << "*******Unsanitized*******\n";
         //sanity check
         if(input_box_int[0].first < 0){
           input_box_int[0].first = 0;
@@ -1161,7 +1173,7 @@ public:
           conjunction += cst; 
           boxes |= conjunction;
         }
-        crab::outs() << "Boxes disjuncts : " << boxes << "\n\n\n";
+        crab::outs() << "Boxes disjuncts : " << boxes << "\n\n";
         
         abs_dom_t dct = abs_dom_t::top();
         dct += d_ct;
@@ -1180,7 +1192,7 @@ public:
       tmp.project(tempo);
       crab::outs() << "This is m_inv projected to z " << tmp << "\n";
       crab::outs() << "This is m_inv projected to z with lin cst " << tmp.to_linear_constraint_system().get_string() << "\n";
-      //crab::outs() << "Ended intrinsic" << "\n";
+      crab::outs() << "Ended intrinsic" << "\n\n\n";
 
     }
     else if(cs.get_intrinsic_name() == "access_velocity_traversed_position"){

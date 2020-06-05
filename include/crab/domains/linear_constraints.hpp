@@ -1719,6 +1719,12 @@ public:
       }
     }
   }
+
+  std::string get_string(){
+    crab::crab_string_os ss;
+    write(ss);
+    return ss.str();
+  }
 };
 
 template <typename Number, typename VariableName>
