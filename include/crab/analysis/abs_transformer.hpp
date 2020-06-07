@@ -953,6 +953,13 @@ public:
       //Handle eran call
       m_inv.intrinsic(cs.get_intrinsic_name(), cs.get_args(), cs.get_lhs());
     }
+    else if(cs.get_intrinsic_name() == "print_invariants"){
+      AbsD pre_invs(m_inv);
+      crab::outs() << "Invariants at this point : " << pre_invs << "\n";
+      crab::outs() << "This is disjunctive lin cst " << m_inv.to_disjunctive_linear_constraint_system() << "\n";
+      crab::outs() << "This is lin cst " << m_inv.to_linear_constraint_system() << "\n\n";
+
+    }
     else if(cs.get_intrinsic_name() == "access_map"){
       //Map
       int CORNER_MAP[25][25] = {
