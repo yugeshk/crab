@@ -707,11 +707,14 @@ public:
 
       //Get Invariants
       crab::outs() << "All invariants at entry : " << pre_invs << "\n";
-      auto djct_csts = pre_invs.to_disjunctive_linear_constraint_system();
+      crab::crab_string_os dj_oss;
+      dj_oss << pre_invs;
+      std::vector<std::string> djct_csts = parse_disjunct_invariants(dj_oss.str());
+      // auto djct_csts = pre_invs.to_disjunctive_linear_constraint_system();
 
       abs_dom_t new_m_inv = abs_dom_t::bottom();
-      for(auto &d_ct: djct_csts){
-        std::string invars = d_ct.get_string(); //get string from pre_invars
+      for(auto d_ct: djct_csts){
+        std::string invars = d_ct; //get string from pre_invars
         crab::outs() << "\n\nThis is the linear cst in a disjunct : " << invars << "\n";
         if(invars.size() < 2 || invars.at(0) != '{' || invars.at(invars.size()-1) != '}'){
           crab::outs() << "Malformed lin_cst string in intrinsic (check variable pre_invars)" << "\n";
@@ -895,6 +898,9 @@ public:
           crab::outs() << "CALL TO DEEPSYMBOL SUCCESSFUL\n\n";
           //Create linear_constraint
 
+          var_t pos_x = args_list[0];
+          var_t pos_y = args_list[1];
+
           var_t ax = args_list[14];
           var_t ay = args_list[15];
           abs_dom_t boxes = abs_dom_t::bottom();
@@ -903,16 +909,24 @@ public:
             abs_dom_t conjunction = abs_dom_t::top(); 
             lin_cst_t cst1(ax == number_t(p.first));
             lin_cst_t cst2(ay == number_t(p.second));
+            lin_cst_t cst3(pos_x >= number_t(input_box_int[0].first));
+            lin_cst_t cst4(pos_x <= number_t(input_box_int[0].second));
+            lin_cst_t cst5(pos_y >= number_t(input_box_int[1].first));
+            lin_cst_t cst6(pos_y <= number_t(input_box_int[1].second));
             conjunction += cst1;
-            conjunction += cst2; 
+            conjunction += cst2;
+            conjunction += cst3;
+            conjunction += cst4;
+            conjunction += cst5; 
+            conjunction += cst6;
             boxes |= conjunction;
           }
 
           crab::outs() << "Acceleration disjuncts : " << boxes << "\n\n\n";
         
-          abs_dom_t dct = abs_dom_t::top();
-          dct += d_ct;
-          new_m_inv |= dct&boxes;
+          // abs_dom_t dct = abs_dom_t::top();
+          // dct += d_ct;
+          m_inv = m_inv&boxes;
 
         }                                                                            
                                                                                    
@@ -947,7 +961,7 @@ public:
 
       }
 
-      m_inv = new_m_inv;                    
+      // m_inv = new_m_inv;                    
     }
     else if(cs.get_intrinsic_name() == "eran"){
       //Handle eran call
