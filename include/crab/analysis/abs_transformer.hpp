@@ -708,7 +708,7 @@ public:
       }
 
       //Get Invariants
-      crab::outs() << "All invariants at entry : " << pre_invs << "\n";
+      // crab::outs() << "All invariants at entry : " << pre_invs << "\n";
       crab::crab_string_os dj_oss;
       dj_oss << pre_invs;
       std::vector<std::string> djct_csts = parse_disjunct_invariants(dj_oss.str());
@@ -717,7 +717,7 @@ public:
       abs_dom_t new_m_inv = abs_dom_t::bottom();
       for(auto d_ct: djct_csts){
         std::string invars = d_ct; //get string from pre_invars
-        crab::outs() << "\n\nThis is the linear cst in a disjunct : " << invars << "\n";
+        // crab::outs() << "\n\nThis is the linear cst in a disjunct : " << invars << "\n";
         if(invars.size() < 2 ){
           crab::outs() << "Malformed lin_cst string in intrinsic (check variable pre_invars)" << "\n";
           std::exit(1);
@@ -961,7 +961,7 @@ public:
           exit(1);                                                                                                                      
         }
 
-        crab::outs() << "Invariants at exit " << m_inv << "\n";
+        // crab::outs() << "Invariants at exit " << m_inv << "\n";
         crab::outs() << "EXITTING INTRINSIC\n\n";
 
       }
