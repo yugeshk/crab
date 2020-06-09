@@ -709,14 +709,18 @@ public:
 
       //Get Invariants
       // crab::outs() << "All invariants at entry : " << pre_invs << "\n";
-      crab::crab_string_os dj_oss;
-      dj_oss << pre_invs;
-      std::vector<std::string> djct_csts = parse_disjunct_invariants(dj_oss.str());
+      auto pre_inv_boxes = m_inv.get_content_domain();
+      pre_inv_boxes.project(cs.get_args());
+      auto djct_csts = pre_inv_boxes.to_disjunctive_linear_constraint_system();
+      crab::outs() << "Projected invariants at entry : " << djct_csts << "\n";
+      // crab::crab_string_os dj_oss;
+      // dj_oss << pre_invs;
+      // std::vector<std::string> djct_csts = parse_disjunct_invariants(dj_oss.str());
       // auto djct_csts = pre_invs.to_disjunctive_linear_constraint_system();
 
       abs_dom_t new_m_inv = abs_dom_t::bottom();
-      for(auto d_ct: djct_csts){
-        std::string invars = d_ct; //get string from pre_invars
+      for(auto &d_ct: djct_csts){
+        std::string invars = d_ct.get_string(); //get string from pre_invars
         // crab::outs() << "\n\nThis is the linear cst in a disjunct : " << invars << "\n";
         if(invars.size() < 2 ){
           crab::outs() << "Malformed lin_cst string in intrinsic (check variable pre_invars)" << "\n";
@@ -819,8 +823,8 @@ public:
             }
           }
           else if(i>3 && i<12){
-            if(input_box_int[i].first < 1){ //Distance to wall can never be 0
-              input_box_int[i].first = 1;
+            if(input_box_int[i].first < 0){
+              input_box_int[i].first = 0;
             }
             if(input_box_int[i].second > 50){
               input_box_int[i].second = 50;
