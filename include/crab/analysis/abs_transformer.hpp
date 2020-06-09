@@ -718,12 +718,12 @@ public:
       for(auto d_ct: djct_csts){
         std::string invars = d_ct; //get string from pre_invars
         crab::outs() << "\n\nThis is the linear cst in a disjunct : " << invars << "\n";
-        if(invars.size() < 2 || invars.at(0) != '{' || invars.at(invars.size()-1) != '}'){
+        if(invars.size() < 2 ){
           crab::outs() << "Malformed lin_cst string in intrinsic (check variable pre_invars)" << "\n";
           std::exit(1);
         }
 
-        invars = invars.substr(1, invars.size()-2); //Stripped the braces
+        // invars = invars.substr(1, invars.size()-2); //Stripped the braces
         std::vector<std::string> lin_cst;
         std::vector<std::vector<std::string>> tokens;
         std::istringstream iss2(invars);
@@ -810,15 +810,15 @@ public:
               input_box_int[i].second = 24;
             }
           }
-          else if(i == 1 || i ==2){
-            if(input_box_int[i].first < 0){
-              input_box_int[i].first = 0;
+          else if(i == 2 || i ==3){
+            if(input_box_int[i].first < -5){
+              input_box_int[i].first = -5;
             }
             if(input_box_int[i].second > 5){
               input_box_int[i].second = 5;
             }
           }
-          else if(i>2 && i<12){
+          else if(i>3 && i<12){
             if(input_box_int[i].first < 1){ //Distance to wall can never be 0
               input_box_int[i].first = 1;
             }
@@ -960,6 +960,9 @@ public:
           crab::outs() << "Failed to execute deepsymbol" << "\n";                          
           exit(1);                                                                                                                      
         }
+
+        crab::outs() << "Invariants at exit " << m_inv << "\n";
+        crab::outs() << "EXITTING INTRINSIC\n\n";
 
       }
 
