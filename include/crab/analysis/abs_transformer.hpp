@@ -722,7 +722,7 @@ public:
       abs_dom_t new_m_inv = abs_dom_t::bottom();
       for(auto &d_ct: djct_csts){
         std::string invars = d_ct.get_string(); //get string from pre_invars
-        // crab::outs() << "\n\nThis is the linear cst in a disjunct : " << invars << "\n";
+        crab::outs() << "\n\nThis is the linear cst in a disjunct : " << invars << "\n";
         if(invars.size() < 2 ){
           crab::outs() << "Malformed lin_cst string in intrinsic (check variable pre_invars)" << "\n";
           std::exit(1);
@@ -895,12 +895,12 @@ public:
 
           //Step 3 : Get the return value and make disjunctive_constraints                     
           //Print the output - will be converted to disjuncts                      
-          // crab::outs << "Number of actions received : " << out_size << "\n";   
-          // int count=1;                                                             
-          // for(auto it: output_box_int){                                            
-          //   cout << "Action number " << count << " : " << it.first << "," << it.second << endl;
-          //   count++;                                                             
-          // }
+          crab::outs() << "Number of actions received : " << out_size << "\n";   
+          int count=1;                                                             
+          for(auto it: output_box_int){                                            
+            crab::outs() << "Action number " << count << " : " << it.first << "," << it.second << "\n";
+            count++;                                                             
+          }
 
           crab::outs() << "CALL TO DEEPSYMBOL SUCCESSFUL\n\n";
           //Create linear_constraint
@@ -1059,17 +1059,21 @@ public:
 
 
       //Get linear constraints on the position_vars
-      crab::outs() << "All invariants at entry : " << pre_invs << "\n";
-      auto djct_csts = pre_invs.to_disjunctive_linear_constraint_system();
-      crab::outs() << "This is the disjunctive_linear_cst : " << djct_csts.get_string() << "\n";
-      crab::outs() << "This is the linear_cst : " << pre_invs.to_linear_constraint_system().get_string() << "\n";
+      // crab::outs() << "All invariants at entry : " << pre_invs << "\n";
+      // auto djct_csts = pre_invs.to_disjunctive_linear_constraint_system();
+      // crab::outs() << "This is the disjunctive_linear_cst : " << djct_csts.get_string() << "\n";
+      // crab::outs() << "This is the linear_cst : " << pre_invs.to_linear_constraint_system().get_string() << "\n";
       
       
       
       //Get a list of the disjuncts separately
       // crab::crab_string_os dj_oss;
       // dj_oss << pre_invs;
-      // std::vector<std::string> disjuncts = parse_disjunct_invariants(dj_oss.str()); 
+      // std::vector<std::string> disjuncts = parse_disjunct_invariants(dj_oss.str());
+      auto pre_inv_boxes = m_inv.get_content_domain();
+      pre_inv_boxes.project(cs.get_args());
+      auto djct_csts = pre_inv_boxes.to_disjunctive_linear_constraint_system();
+      crab::outs() << "Projected invariants at entry : " << djct_csts << "\n";
       
       //Iterate over each disjunct in pre_invs
       abs_dom_t new_m_inv = abs_dom_t::bottom();
@@ -1201,34 +1205,47 @@ public:
       
         //Push llvmVar_return into invariants
         abs_dom_t boxes = abs_dom_t::bottom();
+        var_t pos_x = args_list[0];
+        var_t pos_y = args_list[1];
         var_t z = args_list[2];
 
         for (auto p: possible_map_locations) { 
           crab::outs() << "Possible location " << p << "\n";
           abs_dom_t conjunction = abs_dom_t::top(); 
           lin_cst_t cst(z == number_t(p));
-          conjunction += cst; 
+          lin_cst_t cst3(pos_x >= number_t(input_box_int[0].first));
+          lin_cst_t cst4(pos_x <= number_t(input_box_int[0].second));
+          lin_cst_t cst5(pos_y >= number_t(input_box_int[1].first));
+          lin_cst_t cst6(pos_y <= number_t(input_box_int[1].second));
+          conjunction += cst;
+          conjunction += cst3;
+          conjunction += cst4;
+          conjunction += cst5; 
+          conjunction += cst6;
           boxes |= conjunction;
         }
         crab::outs() << "Boxes disjuncts : " << boxes << "\n\n";
         
-        abs_dom_t dct = abs_dom_t::top();
-        dct += d_ct;
-        new_m_inv |= dct&boxes;
+        // abs_dom_t dct = abs_dom_t::top();
+        // dct += d_ct;
+        // new_m_inv |= dct&boxes;
+
+        m_inv = m_inv&boxes;
+
 
       }
 
-      m_inv = new_m_inv;
+      // m_inv = new_m_inv;
 
-      crab::outs() << "This is m_inv : " << m_inv << "\n";
-      crab::outs() << "This is m_inv lin cst: " << m_inv.to_linear_constraint_system().get_string() << "\n";
+      // crab::outs() << "This is m_inv : " << m_inv << "\n";
+      // crab::outs() << "This is m_inv lin cst: " << m_inv.to_linear_constraint_system().get_string() << "\n";
 
       AbsD tmp(m_inv);
       std::vector<var_t> tempo;
       tempo.push_back(args_list[2]);
-      tmp.project(tempo);
-      crab::outs() << "This is m_inv projected to z " << tmp << "\n";
-      crab::outs() << "This is m_inv projected to z with lin cst " << tmp.to_linear_constraint_system().get_string() << "\n";
+      tmp.project(cs.get_args());
+      crab::outs() << "This is m_inv projected to cs_args " << tmp << "\n";
+      // crab::outs() << "This is m_inv projected to z with lin cst " << tmp.to_linear_constraint_system().get_string() << "\n";
       crab::outs() << "Ended intrinsic" << "\n\n\n";
 
     }
