@@ -1102,6 +1102,7 @@ public:
         }
 
         std::vector<std::pair<int, int>> input_box_int(2, std::make_pair(0, 0));
+        int position_bound_exist[4] = {0,0,0,0};
         for(auto it: tokens){
           if((it.size()!=3) && (it[0]!= "true") && (it[0]!= "false")){
             crab::outs() << "Malformed lin_cst token. Exitting" << "\n";
@@ -1124,18 +1125,24 @@ public:
               if(it[1] == "="){
                 input_box_int[index].first = -1*std::stoi(it[2]);
                 input_box_int[index].second = -1*std::stoi(it[2]);
+                position_bound_exist[2*index] = 1;
+                position_bound_exist[2*index+1] = 1;
               }
               else if(it[1] == "<"){
                 input_box_int[index].first = -1*std::stoi(it[2])+1;
+                position_bound_exist[2*index] = 1;
               }
               else if(it[1] == "<="){
                 input_box_int[index].first = -1*std::stoi(it[2]);
+                position_bound_exist[2*index] = 1;
               }
               else if(it[1] == ">"){
                 input_box_int[index].second = -1*std::stoi(it[2])-1;
+                position_bound_exist[2*index+1] = 1;
               }
               else if(it[1] == ">="){
                 input_box_int[index].second = -1*std::stoi(it[2]);
+                position_bound_exist[2*index+1] = 1;
               }
               else{
                 crab::outs() << "LIN CST OPERATOR INVALID. EXITTING" << "\n";
@@ -1156,18 +1163,24 @@ public:
               if(it[1] == "="){
                 input_box_int[index].first = std::stoi(it[2]);
                 input_box_int[index].second = std::stoi(it[2]);
+                position_bound_exist[2*index] = 1;
+                position_bound_exist[2*index+1] = 1;
               }
               else if(it[1] == "<"){
                 input_box_int[index].second = std::stoi(it[2])-1;
+                position_bound_exist[2*index+1] = 1;
               }
               else if(it[1] == "<="){
                 input_box_int[index].second = std::stoi(it[2]);
+                position_bound_exist[2*index+1] = 1;
               }
               else if(it[1] == ">"){
                 input_box_int[index].first = std::stoi(it[2])+1;
+                position_bound_exist[2*index] = 1;
               }
               else if(it[1] == ">="){
                 input_box_int[index].first = std::stoi(it[2]);
+                position_bound_exist[2*index] = 1;
               }
               else{
                 crab::outs() << "LIN CST OPERATOR INVALID. EXITTING" << "\n";
@@ -1181,18 +1194,18 @@ public:
         crab::outs() << "Lower and Upper j : " << input_box_int[1].first << " to " << input_box_int[1].second << "\n";
         crab::outs() << "*******Unsanitized*******\n";
         //sanity check
-        if(input_box_int[0].first < 0){
-          input_box_int[0].first = 0;
-        }
-        if(input_box_int[0].second > 24){
-          input_box_int[0].second = 24;
-        }
-        if(input_box_int[1].first < 0){
-          input_box_int[1].first = 0;
-        }
-        if(input_box_int[1].second > 24){
-          input_box_int[1].second = 24;
-        }
+        // if(input_box_int[0].first < 0){
+        //   input_box_int[0].first = 0;
+        // }
+        // if(input_box_int[0].second > 24){
+        //   input_box_int[0].second = 24;
+        // }
+        // if(input_box_int[1].first < 0){
+        //   input_box_int[1].first = 0;
+        // }
+        // if(input_box_int[1].second > 24){
+        //   input_box_int[1].second = 24;
+        // }
 
         crab::outs() << "Lower and Upper i : " << input_box_int[0].first << " to " << input_box_int[0].second << "\n";
         crab::outs() << "Lower and Upper j : " << input_box_int[1].first << " to " << input_box_int[1].second << "\n"; 
@@ -1200,9 +1213,22 @@ public:
         //Access the map to check what are possible values
         std::vector<int> possible_map_locations;
         for(int i=input_box_int[0].first; i<=input_box_int[0].second; i++){
+          if(i<0){
+            continue;
+          }
+          else if(i>24){
+            break;
+          }
+          
           for(int j=input_box_int[1].first; j<=input_box_int[1].second; j++){
             //if (i,j) are allowed in the invariants
-            if(std::find(possible_map_locations.begin(), possible_map_locations.end(), CORNER_MAP[i][j]) != possible_map_locations.end()){
+            if( j<0 ){
+              continue;
+            }
+            else if(j>24){
+              break;
+            }
+            else if(std::find(possible_map_locations.begin(), possible_map_locations.end(), CORNER_MAP[i][j]) != possible_map_locations.end()){
               continue;
             }
             else{
@@ -1218,15 +1244,24 @@ public:
           crab::outs() << "Possible location " << p << "\n";
           abs_dom_t conjunction = abs_dom_t::top(); 
           lin_cst_t cst(z == number_t(p));
-          lin_cst_t cst3(pos_x >= number_t(input_box_int[0].first));
-          lin_cst_t cst4(pos_x <= number_t(input_box_int[0].second));
-          lin_cst_t cst5(pos_y >= number_t(input_box_int[1].first));
-          lin_cst_t cst6(pos_y <= number_t(input_box_int[1].second));
           conjunction += cst;
-          conjunction += cst3;
-          conjunction += cst4;
-          conjunction += cst5; 
-          conjunction += cst6;
+          if(position_bound_exist[0]){
+            lin_cst_t cst3(pos_x >= number_t(input_box_int[0].first));
+            conjunction += cst3;
+          }
+          if(position_bound_exist[1]){
+            lin_cst_t cst4(pos_x <= number_t(input_box_int[0].second));
+            conjunction += cst4;
+          }
+          if(position_bound_exist[2]){
+            lin_cst_t cst5(pos_y >= number_t(input_box_int[1].first));
+            conjunction += cst5;
+          }
+          if(position_bound_exist[3]){
+            lin_cst_t cst6(pos_y <= number_t(input_box_int[1].second));
+            conjunction += cst6;
+          }
+          
           boxes |= conjunction;
         }
         crab::outs() << "Boxes disjuncts : " << boxes << "\n\n";
