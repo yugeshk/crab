@@ -933,7 +933,7 @@ public:
         
           // abs_dom_t dct = abs_dom_t::top();
           // dct += d_ct;
-          m_inv = m_inv&boxes;
+          new_m_inv |= m_inv&boxes;
 
         }                                                                            
                                                                                    
@@ -971,7 +971,7 @@ public:
 
       }
 
-      // m_inv = new_m_inv;                    
+      m_inv = new_m_inv;                    
     }
     else if(cs.get_intrinsic_name() == "eran"){
       //Handle eran call
@@ -1020,11 +1020,19 @@ public:
         {'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'}
       };
 
-      AbsD pre_invs(m_inv);
       std::vector<var_t> args_list = cs.get_args();
+      //Forget anything we know about z
+      var_t pos_x = args_list[0];
+      var_t pos_y = args_list[1];
+      var_t z = args_list[2];
+      m_inv -= z;
+
+      AbsD pre_invs(m_inv);
       std::vector<var_t> position_vars;
       position_vars.push_back(args_list[0]);
       position_vars.push_back(args_list[1]);
+
+      
 
       //get string name of position x,y llvmVars
       std::string call_st = cs.get_string();
@@ -1205,9 +1213,6 @@ public:
       
         //Push llvmVar_return into invariants
         abs_dom_t boxes = abs_dom_t::bottom();
-        var_t pos_x = args_list[0];
-        var_t pos_y = args_list[1];
-        var_t z = args_list[2];
 
         for (auto p: possible_map_locations) { 
           crab::outs() << "Possible location " << p << "\n";
@@ -1230,12 +1235,12 @@ public:
         // dct += d_ct;
         // new_m_inv |= dct&boxes;
 
-        m_inv = m_inv&boxes;
+        new_m_inv |= m_inv&boxes;
 
 
       }
 
-      // m_inv = new_m_inv;
+      m_inv = new_m_inv;
 
       // crab::outs() << "This is m_inv : " << m_inv << "\n";
       // crab::outs() << "This is m_inv lin cst: " << m_inv.to_linear_constraint_system().get_string() << "\n";
