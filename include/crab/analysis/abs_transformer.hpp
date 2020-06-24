@@ -971,7 +971,11 @@ public:
 
       }
 
-      m_inv = new_m_inv;                    
+      m_inv = new_m_inv;
+      auto tmp1 = m_inv.get_content_domain();
+      tmp1.project(cs.get_args());
+
+      crab::outs() << "Projected invariants at exit : " << tmp1 << "\n";                 
     }
     else if(cs.get_intrinsic_name() == "eran"){
       //Handle eran call
