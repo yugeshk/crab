@@ -142,7 +142,6 @@ template <typename T> inline std::string get_label_str(T e);
 
 namespace cfg {
 
-<<<<<<< HEAD
     // The values must be such that NUM <= PTR <= ARR
     enum tracked_precision { NUM = 0, PTR = 1, ARR = 2 };
   
@@ -170,53 +169,6 @@ namespace cfg {
       CLAM_PRINT = 90, CLAM_VAR_TAGS = 91, CLAM_NN = 92,
     }; 
     
-=======
-// The values must be such that NUM <= PTR <= ARR
-// PTR is configuration (1) because it allows pointer but not array statements.
-// ARR is configuration (3) because it allows both pointer and array statements
-enum tracked_precision { NUM = 0, PTR = 1, ARR = 2 };
-
-enum stmt_code {
-  UNDEF = 0,
-  // numerical
-  BIN_OP = 20,
-  ASSIGN = 21,
-  ASSUME = 22,
-  UNREACH = 23,
-  SELECT = 24,
-  ASSERT = 25,
-  // arrays
-  ARR_INIT = 30,
-  ARR_STORE = 31,
-  ARR_LOAD = 32,
-  ARR_ASSIGN = 33,
-  // pointers
-  PTR_LOAD = 40,
-  PTR_STORE = 41,
-  PTR_ASSIGN = 42,
-  PTR_OBJECT = 43,
-  PTR_FUNCTION = 44,
-  PTR_NULL = 45,
-  PTR_ASSUME = 46,
-  PTR_ASSERT = 47,
-  // functions calls
-  CALLSITE = 50,
-  RETURN = 51,
-  CRAB_INTRINSIC = 52,
-  // integers/arrays/pointers/boolean
-  HAVOC = 60,
-  // boolean
-  BOOL_BIN_OP = 70,
-  BOOL_ASSIGN_CST = 71,
-  BOOL_ASSIGN_VAR = 72,
-  BOOL_ASSUME = 73,
-  BOOL_SELECT = 74,
-  BOOL_ASSERT = 75,
-  // casts
-  INT_CAST = 80
-};
-
->>>>>>> e2e1f371... Add number of bytes field for pointer load and store
 template <typename Number, typename VariableName> class live {
 public:
   typedef ikos::variable<Number, VariableName> variable_t;
