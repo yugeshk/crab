@@ -649,13 +649,80 @@ public:
 
     return disjuncts;
   }
+
+  int compute_wall_distance_singular(int px, int py, int vx, int vy){
+
+    if(vx == 0 && vy == 0){
+      return 50;
+    }
+
+    int distance = 0;
+    int flag = 1;
+    while(flag){
+      px += vx;
+      py += vy;
+      if((px >= 0)&&(px <14) && (py>=0) && (py <14))
+      {
+	     flag = 0;
+      }
+      else if(px == 24 || py == 24)
+      {
+	     flag = 0;
+      }
+      else if(px < 0 || px > 24)
+      {
+	     flag = 0;
+      }
+      else if(py < 0 || py > 24)
+      {
+	     flag = 0;
+      }
+      else 
+      {
+	     flag = 1;
+      }
+
+      distance++;
+    }
+
+    return distance;
+  }
+
+  int compute_wall_distance(int px, int py, int vx, int vy){
+    
+    int d1 = compute_wall_distance_singular(px, py, vx, 0);
+    int d2 = compute_wall_distance_singular(px, py, 0, vy);
+    int d3 = compute_wall_distance_singular(px, py, vx, vy);
+    if(vx == 0){
+      return d2;
+    }
+    else if(vy == 0){
+      return d1;
+    }
+    else{
+      if(d1 < d2){
+	      if(d1 < d3){
+	        return d1;
+	      }
+	      else{
+	        return d3;
+	      }
+      }
+      else if(d2 < d3)
+	      return d2;
+      else
+	      return d3;
+    }
+
+    return 50;
+  }
   
   void exec(intrinsic_t &cs) {
 
     std::ofstream logging("/clam/custom_logging/intrinsic.log", std::ofstream::app);
     time_t t;
     time(&t);
-    logging << "\nReached crab intrinsic " << cs.get_intrinsic_name() << " at " << ctime(&t) << "please chcek appropriate logs\n";
+    logging << "\n**********\nReached crab intrinsic " << cs.get_intrinsic_name() << " at " << ctime(&t) << "please chcek appropriate logs\n";
     logging.close();
     crab::outs() << "\nReached crab intrinsic " << cs.get_intrinsic_name() << " at " << ctime(&t);
 
@@ -1616,6 +1683,192 @@ public:
       crab::outs() << "This is boxes : " << boxes.to_linear_constraint_system().get_string() << "\n";
       m_inv |= boxes;
       crab::outs() << "This is m_inv : " << m_inv.to_linear_constraint_system().get_string() << "\n"; 
+    }
+    else if(cs.get_intrinsic_name() == "get_wall_distance"){
+      AbsD pre_inv(m_inv);
+
+      std::vector<var_t> args_list = cs.get_args();
+      var_t var_distance = args_list[4];
+      //Forget what we know about distance
+      m_inv -= var_distance;
+
+      //get string name of input variables
+      std::string call_st = cs.get_string();
+      crab::outs() << "This is the call statement : " << call_st << "\n";
+      call_st = call_st.substr(call_st.find("(") + 1, call_st.find(")") - call_st.find("(") - 1);
+      std::istringstream iss1(call_st);
+      int index = 0;
+      std::vector<std::string> llvm_Vars;
+      std::string item;
+      while(std::getline(iss1, item, ',')){
+        if(index == 0){
+          if(item.substr(0, item.find(":")) != "get_wall_distance"){
+            crab::outs() << "Malformed instrinsic statement call" << "\n";
+            std::exit(1);
+          }
+        }
+        else if(index >=1 && index <=5){
+          llvm_Vars.push_back(item.substr(0, item.find(":")));
+        }
+        else{
+          crab::outs() << "More than expected arguements passed" << "\n";
+          std::exit(1);
+        }
+        index++;
+      }
+
+      //Get the Invariants
+      auto pre_inv_boxes = m_inv.get_content_domain();
+      pre_inv_boxes.project(cs.get_args());
+      auto djct_csts = pre_inv_boxes.to_disjunctive_linear_constraint_system();
+      crab::outs() << "Projected invariants at entry : " << djct_csts << "\n";
+
+      //Iterate over each disjunct in djct_csts
+      abs_dom_t new_m_inv = abs_dom_t::bottom();
+      for(auto &d_ct: djct_csts){
+        std::string invars = d_ct.get_string(); //get string of preconds invariants
+        crab::outs() << "\n\nThis is the linear cst in a disjunct : " << invars << "\n";
+        if(invars.size() < 2){
+          crab::outs() << "Malformed lin_cst string in intrinsic (check variable pre_invars)" << "\n";
+          std::exit(1);
+        }
+
+        invars = invars.substr(1, invars.size()-2); //Stripped braces
+
+        std::vector<std::string> lin_cst;
+        std::vector<std::vector<std::string>> tokens;
+        std::istringstream iss2(invars);
+        while(std::getline(iss2, item, ';')){
+          item = trim(item);
+          std::stringstream ss(item);  //String of individual lin_cst
+          std::istream_iterator<std::string> begin(ss);
+          std::istream_iterator<std::string> end;
+          std::vector<std::string> lin_cst(begin, end); //Convert each linear_cst to its tokens
+          tokens.push_back(lin_cst);
+        }
+
+        std::vector<std::pair<int, int>> input_bounds(4, std::make_pair(0,0));
+        for(auto it: tokens){
+          if((it.size()!=3) && (it[0]!= "true") && (it[0]!= "false")){
+            crab::outs() << "Malformed lin_cst token. Exitting" << "\n";
+            std::exit(1);
+          }
+          else if(it.size()==3){
+            item = it[0]; //String of llvm variable
+            if(item.at(0)=='-'){
+              item = item.substr(1, item.size()-1);
+              auto index_it = std::find(llvm_Vars.begin(), llvm_Vars.end(), item);
+              if(index_it == llvm_Vars.end()){
+                crab::outs() << "Variable not found. Exitting\n";
+                std::exit(1);
+              }
+
+              int index = std::distance(llvm_Vars.begin(), index_it);
+              if(it[1] == "="){
+                input_bounds[index].first = -1*std::stoi(it[2]);
+                input_bounds[index].second = -1*std::stoi(it[2]);
+              }
+              else if(it[1] == "<"){
+                input_bounds[index].first = -1*std::stoi(it[2])+1;
+              }
+              else if(it[1] == "<="){
+                input_bounds[index].first = -1*std::stoi(it[2]);
+              }
+              else if(it[1] == ">"){
+                input_bounds[index].second = -1*std::stoi(it[2])-1;
+              }
+              else if(it[1] == ">="){
+               input_bounds[index].second = -1*std::stoi(it[2]);
+              }
+              else{
+                crab::outs() << "LIN CST OPERATOR INVALID. EXITTING" << "\n";
+                exit(1);
+              }
+            }
+            else{
+              auto index_it = std::find(llvm_Vars.begin(), llvm_Vars.end(), item);
+              if(index_it == llvm_Vars.end()){
+                crab::outs() << "Variable not found. Exitting";
+                std::exit(1);
+              }
+
+              int index = std::distance(llvm_Vars.begin(), index_it);
+              if(it[1] == "="){
+                input_bounds[index].first = std::stoi(it[2]);
+                input_bounds[index].second = std::stoi(it[2]);
+              }
+              else if(it[1] == "<"){
+                input_bounds[index].second = std::stoi(it[2])-1;
+              }
+              else if(it[1] == "<="){
+                input_bounds[index].second = std::stoi(it[2]);
+              }
+              else if(it[1] == ">"){
+                input_bounds[index].first = std::stoi(it[2])+1;
+              }
+              else if(it[1] == ">="){
+               input_bounds[index].first = std::stoi(it[2]);
+              }
+              else{
+                crab::outs() << "LIN CST OPERATOR INVALID. EXITTING" << "\n";
+                exit(1);
+              }
+            }
+          }
+        }
+
+        //Use Input_bounds to compute wall distance
+        int distance_lb = 1000, distance_ub = 0, distance;
+        for(int px = input_bounds[0].first; px <= input_bounds[0].second; px++){
+          for(int py = input_bounds[1].first; py <= input_bounds[1].second; py++){
+            for(int vx = input_bounds[2].first; vx <= input_bounds[2].second; vx++){
+              for(int vy = input_bounds[3].first; vy <= input_bounds[3].second; vy++){
+                if(vx==0 && vy==0){
+                  continue;
+                }
+
+                distance = compute_wall_distance(px, py, vx, vy);
+                crab::outs() << "Diatnce computed : " << distance << "\n";
+                if(distance < distance_lb)
+                  distance_lb = distance;
+                
+                if(distance > distance_ub)
+                  distance_ub = distance;
+              }
+            }
+          }
+        }
+
+        //Create linear_cst
+        var_t pos_x = args_list[0];
+        var_t pos_y = args_list[1];
+
+        abs_dom_t boxes = abs_dom_t::bottom();
+        abs_dom_t conjunction = abs_dom_t::top();
+        lin_cst_t cst1(var_distance >= number_t(distance_lb));
+        lin_cst_t cst2(var_distance <= number_t(distance_ub));
+        lin_cst_t cst3(pos_x >= number_t(input_bounds[0].first));
+        lin_cst_t cst4(pos_x <= number_t(input_bounds[0].second));
+        lin_cst_t cst5(pos_y >= number_t(input_bounds[1].first));
+        lin_cst_t cst6(pos_y <= number_t(input_bounds[1].second));
+        conjunction += cst1;
+        conjunction += cst2;
+        conjunction += cst3;
+        conjunction += cst4;
+        conjunction += cst5; 
+        conjunction += cst6;
+        boxes |= conjunction;
+
+        crab::outs() << "Distance invariant : " << boxes << "\n\n";
+        new_m_inv |= m_inv&boxes;
+      }
+      
+      m_inv = new_m_inv;
+      auto tmp1 = m_inv.get_content_domain();
+      tmp1.project(cs.get_args());
+
+      crab::outs() << "Projected invariants at exit : " << tmp1 << "\n**********\n";
+
     }
     else{
       // This is the default intrinsic behaviour, here we will test the behaviour of an intrinsic
