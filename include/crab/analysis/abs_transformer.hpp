@@ -958,11 +958,11 @@ public:
           //Read from the input of second pipe                                     
           int out_size;                                                            
           read(fd2[0], (void *)(&out_size), sizeof(int));                          
-          int *out_arr = (int *)(calloc(out_size, sizeof(int)));                   
+          int *out_arr = (int *)(calloc(2*out_size, sizeof(int)));                   
           read(fd2[0], (void *)(out_arr), 2*out_size*sizeof(int));                 
 
           std::vector<std::pair<int, int>> output_box_int;                         
-          for(int i=0;i<out_size;i+=2){                                            
+          for(int i=0;i<2*out_size;i+=2){                                            
             output_box_int.push_back(std::pair<int, int>(out_arr[i], out_arr[i+1]));  
           }                                                                        
 
@@ -1890,7 +1890,7 @@ public:
       std::string item;
       while(std::getline(iss1, item, ',')){
         if(index == 0){
-          if(item.substr(0, item.find(":")) != "get_wall_distance"){
+          if(item.substr(0, item.find(":")) != "get_goal_distance"){
             crab::outs() << "Malformed instrinsic statement call" << "\n";
             std::exit(1);
           }
@@ -2005,13 +2005,15 @@ public:
           }
         }
 
+        // crab::outs() << "Bounds on position : " << input_bounds[0].first << ", " << input_bounds[0].second << ", " << input_bounds[1].first << ", " << input_bounds[1].second << "\n";
+
         //Use Input_bounds to compute goal distance
         int gdistx_lb = 1000, gdistx_ub = 0, gdisty_lb = 1000, gdisty_ub = 0;
         for(int px = input_bounds[0].first; px <= input_bounds[0].second; px++){
           for(int py = input_bounds[1].first; py <= input_bounds[1].second; py++){
             int goal_x, goal_y, g_l1 = 50, g_x = 25, g_y = 25;
             for(int i=0; i<10; i++){
-              goal_x = i+10;
+              goal_x = i+14;
               goal_y = 0;
               int x = std::abs(px - goal_x);
               int y = std::abs(py - goal_y);
@@ -2032,11 +2034,13 @@ public:
             if(g_y < gdisty_lb)
               gdisty_lb = g_y;
 
-            if(g_y > gdisty_lb)
-              gdisty_lb = g_y;
+            if(g_y > gdisty_ub)
+              gdisty_ub = g_y;
             
           }
         }
+
+        // crab::outs() << "Bounds on distance : " << gdistx_lb << "," << gdistx_ub << " , " << gdisty_lb << "," << gdisty_ub << "\n";
 
         //Create linear_cst
         var_t pos_x = args_list[0];
