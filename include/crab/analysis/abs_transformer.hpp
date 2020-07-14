@@ -879,38 +879,50 @@ public:
           }
         }
 
+        for(int i=0;i<14;i++){
+          crab::outs() << "Bounds computed for feature " << i << " are : " << input_box_int[i].first << " " << input_box_int[i].second << "\n";
+        }
+
         //Sanitize Input Box Int
         for(int i=0;i<14;i++){
           //position
           if(i == 0 || i ==1){
             if(input_box_int[i].first < 0){
+              crab::outs() << "Sanitized input " << i << " lower bound " << input_box_int[i].first << " to " << "0\n"; 
               input_box_int[i].first = 0;
             }
             if(input_box_int[i].second > 24){
+              crab::outs() << "Sanitized input " << i << " upper bound " << input_box_int[i].second << " to " << "24\n";
               input_box_int[i].second = 24;
             }
           }
           else if(i == 2 || i ==3){
             if(input_box_int[i].first < -5){
+              crab::outs() << "Sanitized input " << i << " lower bound " << input_box_int[i].first << " to -5\n";
               input_box_int[i].first = -5;
             }
             if(input_box_int[i].second > 5){
+              crab::outs() << "Sanitized input " << i << " upper bound " << input_box_int[i].second << " to 5\n";
               input_box_int[i].second = 5;
             }
           }
           else if(i>3 && i<12){
             if(input_box_int[i].first < 0){
+              crab::outs() << "Sanitized input " << i << " lower bound " << input_box_int[i].first << " to 0\n";
               input_box_int[i].first = 0;
             }
             if(input_box_int[i].second > 50){
+              crab::outs() << "Sanitized input " << i << " upper bound " << input_box_int[i].second << " to 50\n";
               input_box_int[i].second = 50;
             }
           }
           else if(i == 12 || i == 13){
             if(input_box_int[i].first < 0){
+              crab::outs() << "Sanitized input " << i << " lower bound " << input_box_int[i].first << " to 0\n";
               input_box_int[i].first = 0;
             }
             if(input_box_int[i].second > 50){
+              crab::outs() << "Sanitized input " << i << " upper bound " << input_box_int[i].second << " to 50\n";
               input_box_int[i].second = 50;
             }
           }
