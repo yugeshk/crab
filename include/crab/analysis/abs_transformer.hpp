@@ -803,7 +803,7 @@ public:
           std::exit(1);
         }
 
-        // invars = invars.substr(1, invars.size()-2); //Stripped the braces
+        invars = invars.substr(1, invars.size()-2); //Stripped the braces
         std::vector<std::string> lin_cst;
         std::vector<std::vector<std::string>> tokens;
         std::istringstream iss2(invars);
@@ -877,10 +877,6 @@ public:
               }
             }
           }
-        }
-
-        for(int i=0;i<14;i++){
-          crab::outs() << "Bounds computed for feature " << i << " are : " << input_box_int[i].first << " " << input_box_int[i].second << "\n";
         }
 
         //Sanitize Input Box Int
