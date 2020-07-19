@@ -816,7 +816,7 @@ public:
           tokens.push_back(lin_cst);
         }
       
-        std::vector<std::pair<int, int>> input_box_int(14, std::make_pair(0, 0));
+        std::vector<std::pair<int, int>> input_box_int(14, std::make_pair(-100, -100)); // (-100,-100) is random choice
 
         for(auto it: tokens){
           if((it.size()!=3) && (it[0]!= "true") && (it[0]!= "false")){
@@ -883,41 +883,41 @@ public:
         for(int i=0;i<14;i++){
           //position
           if(i == 0 || i ==1){
-            if(input_box_int[i].first < 0){
+            if(input_box_int[i].first == -100){
               crab::outs() << "Sanitized input " << i << " lower bound " << input_box_int[i].first << " to " << "0\n"; 
               input_box_int[i].first = 0;
             }
-            if(input_box_int[i].second > 24){
+            if(input_box_int[i].second == -100){
               crab::outs() << "Sanitized input " << i << " upper bound " << input_box_int[i].second << " to " << "24\n";
               input_box_int[i].second = 24;
             }
           }
           else if(i == 2 || i ==3){
-            if(input_box_int[i].first < -5){
+            if(input_box_int[i].first == -100){
               crab::outs() << "Sanitized input " << i << " lower bound " << input_box_int[i].first << " to -5\n";
               input_box_int[i].first = -5;
             }
-            if(input_box_int[i].second > 5){
+            if(input_box_int[i].second == -100){
               crab::outs() << "Sanitized input " << i << " upper bound " << input_box_int[i].second << " to 5\n";
               input_box_int[i].second = 5;
             }
           }
           else if(i>3 && i<12){
-            if(input_box_int[i].first < 0){
+            if(input_box_int[i].first == -100){
               crab::outs() << "Sanitized input " << i << " lower bound " << input_box_int[i].first << " to 0\n";
               input_box_int[i].first = 0;
             }
-            if(input_box_int[i].second > 50){
+            if(input_box_int[i].second == -100){
               crab::outs() << "Sanitized input " << i << " upper bound " << input_box_int[i].second << " to 50\n";
               input_box_int[i].second = 50;
             }
           }
           else if(i == 12 || i == 13){
-            if(input_box_int[i].first < 0){
+            if(input_box_int[i].first == -100){
               crab::outs() << "Sanitized input " << i << " lower bound " << input_box_int[i].first << " to 0\n";
               input_box_int[i].first = 0;
             }
-            if(input_box_int[i].second > 50){
+            if(input_box_int[i].second == -100){
               crab::outs() << "Sanitized input " << i << " upper bound " << input_box_int[i].second << " to 50\n";
               input_box_int[i].second = 50;
             }
@@ -1462,8 +1462,10 @@ public:
       }
 
       //Get linear constraints on the position_vars
-      crab::outs() << "All invariants at entry : " << pre_invs << "\n";
-      auto djct_csts = pre_invs.to_disjunctive_linear_constraint_system();
+      auto pre_inv_boxes = m_inv.get_content_domain();
+      pre_inv_boxes.project(cs.get_args());
+      auto djct_csts = pre_inv_boxes.to_disjunctive_linear_constraint_system();
+      crab::outs() << "Projected invariants at entry : " << djct_csts << "\n";
 
       abs_dom_t new_m_inv = abs_dom_t::bottom();
       for(auto &d_ct: djct_csts){
@@ -1572,30 +1574,30 @@ public:
 
         //TODO : sanity check
 
-        if(input_box_int[0].first < 0){
-          input_box_int[0].first = 0;
-        }
-        if(input_box_int[0].second > 5){
-          input_box_int[0].second = 5;
-        }
-        if(input_box_int[1].first < 0){
-          input_box_int[1].first = 0;
-        }
-        if(input_box_int[1].second > 5){
-          input_box_int[1].second = 5;
-        }
-        if(input_box_int[2].first < 0){
-          input_box_int[2].first = 0;
-        }
-        if(input_box_int[2].second > 5){
-          input_box_int[2].second = 5;
-        }
-        if(input_box_int[3].first < 0){
-          input_box_int[3].first = 0;
-        }
-        if(input_box_int[3].second > 5){
-          input_box_int[3].second = 5;
-        }
+        // if(input_box_int[0].first < 0){
+        //   input_box_int[0].first = 0;
+        // }
+        // if(input_box_int[0].second > 5){
+        //   input_box_int[0].second = 5;
+        // }
+        // if(input_box_int[1].first < 0){
+        //   input_box_int[1].first = 0;
+        // }
+        // if(input_box_int[1].second > 5){
+        //   input_box_int[1].second = 5;
+        // }
+        // if(input_box_int[2].first < 0){
+        //   input_box_int[2].first = 0;
+        // }
+        // if(input_box_int[2].second > 5){
+        //   input_box_int[2].second = 5;
+        // }
+        // if(input_box_int[3].first < 0){
+        //   input_box_int[3].first = 0;
+        // }
+        // if(input_box_int[3].second > 5){
+        //   input_box_int[3].second = 5;
+        // }
 
         crab::outs() << "Lower and Upper vx : " << input_box_int[0].first << " to " << input_box_int[0].second << "\n";
         crab::outs() << "Lower and Upper vy : " << input_box_int[1].first << " to " << input_box_int[1].second << "\n";
@@ -1755,7 +1757,7 @@ public:
           tokens.push_back(lin_cst);
         }
 
-        std::vector<std::pair<int, int>> input_bounds(4, std::make_pair(0,0));
+        std::vector<std::pair<int, int>> input_bounds(4, std::make_pair(-100,-100));
         for(auto it: tokens){
           if((it.size()!=3) && (it[0]!= "true") && (it[0]!= "false")){
             crab::outs() << "Malformed lin_cst token. Exitting" << "\n";
@@ -1821,6 +1823,26 @@ public:
                 crab::outs() << "LIN CST OPERATOR INVALID. EXITTING" << "\n";
                 exit(1);
               }
+            }
+          }
+        }
+
+        //Sanitize input_bounds if uninitialized
+        for(int i=0;i<4;i++){
+          if(i==0||i==1){
+            if(input_bounds[i].first == -100){
+              input_bounds[i].first = 0;
+            }
+            if(input_bounds[i].second == -100){
+              input_bounds[i].second = 25;
+            }
+          }
+          else{
+            if(input_bounds[i].first == -100){
+              input_bounds[i].first = 0;
+            }
+            if(input_bounds[i].second == -100){
+              input_bounds[i].second = 5;
             }
           }
         }
