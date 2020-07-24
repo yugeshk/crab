@@ -651,107 +651,72 @@ public:
     return disjuncts;
   }
 
-  int compute_wall_distance_singular(int px, int py, int vx, int vy){
+  // int compute_wall_distance_singular(int px, int py, int vx, int vy){
 
-    if(vx == 0 && vy == 0){
-      return 50;
-    }
+  //   if(vx == 0 && vy == 0){
+  //     return 50;
+  //   }
 
-    int distance = 0;
-    int flag = 1;
-    while(flag){
-      px += vx;
-      py += vy;
-      if((px >= 0)&&(px <14) && (py>=0) && (py <14))
-      {
-	     flag = 0;
-      }
-      else if(px == 24 || py == 24)
-      {
-	     flag = 0;
-      }
-      else if(px < 0 || px > 24)
-      {
-	     flag = 0;
-      }
-      else if(py < 0 || py > 24)
-      {
-	     flag = 0;
-      }
-      else 
-      {
-	     flag = 1;
-      }
+  //   int distance = 0;
+  //   int flag = 1;
+  //   while(flag){
+  //     px += vx;
+  //     py += vy;
+  //     if((px >= 0)&&(px <14) && (py>=0) && (py <14))
+  //     {
+	//      flag = 0;
+  //     }
+  //     else if(px == 24 || py == 24)
+  //     {
+	//      flag = 0;
+  //     }
+  //     else if(px < 0 || px > 24)
+  //     {
+	//      flag = 0;
+  //     }
+  //     else if(py < 0 || py > 24)
+  //     {
+	//      flag = 0;
+  //     }
+  //     else 
+  //     {
+	//      flag = 1;
+  //     }
 
-      distance++;
-    }
+  //     distance++;
+  //   }
 
-    return distance;
-  }
+  //   return distance;
+  // }
 
-  int compute_wall_distance(int px, int py, int vx, int vy){
+  // int compute_wall_distance(int px, int py, int vx, int vy){
     
-    int d1 = compute_wall_distance_singular(px, py, vx, 0);
-    int d2 = compute_wall_distance_singular(px, py, 0, vy);
-    int d3 = compute_wall_distance_singular(px, py, vx, vy);
-    if(vx == 0){
-      return d2;
-    }
-    else if(vy == 0){
-      return d1;
-    }
-    else{
-      if(d1 < d2){
-	      if(d1 < d3){
-	        return d1;
-	      }
-	      else{
-	        return d3;
-	      }
-      }
-      else if(d2 < d3)
-	      return d2;
-      else
-	      return d3;
-    }
+  //   int d1 = compute_wall_distance_singular(px, py, vx, 0);
+  //   int d2 = compute_wall_distance_singular(px, py, 0, vy);
+  //   int d3 = compute_wall_distance_singular(px, py, vx, vy);
+  //   if(vx == 0){
+  //     return d2;
+  //   }
+  //   else if(vy == 0){
+  //     return d1;
+  //   }
+  //   else{
+  //     if(d1 < d2){
+	//       if(d1 < d3){
+	//         return d1;
+	//       }
+	//       else{
+	//         return d3;
+	//       }
+  //     }
+  //     else if(d2 < d3)
+	//       return d2;
+  //     else
+	//       return d3;
+  //   }
 
-    return 50;
-  }
-
-  int is_valid_position_nointrinsic(int px, int py)
-  {
-    int map_pos = 0;
-    if((px >= 0)&&(px <14) && (py>=0) && (py <14))
-    {
-	   map_pos = 0;
-    }
-    else if(px == 24 || py == 24)
-    {
-	   map_pos = 0;
-    }
-    else if(px < 0)
-    {
-	   map_pos = 0;
-    }
-    else if (px > 24)
-    {
-	   map_pos = 0;
-    }
-    else if(py < 0)
-    {
-	   map_pos = 0;
-    }
-    else if (py > 24)
-    {
-	   map_pos = 0;
-    }
-    else 
-    {
-	   map_pos = 1;
-    }
-
-    return map_pos;
-  }
+  //   return 50;
+  // }
 
   int access_velocity_traversed_position(int a, int b, int c, int d){
     int velocity_to_traversed_positions[6][6][6][6] =
@@ -793,6 +758,81 @@ public:
       {{1, 1, 0, 0, 0, 0}, {0, 1, 1, 0, 0, 0}, {0, 0, 1, 1, 0, 0}, {0, 0, 0, 1, 1, 0}, {0, 0, 0, 0, 1, 1}, {0, 0, 0, 0, 0, 1}}}};
 
       return velocity_to_traversed_positions[a][b][c][d];
+  }
+
+  int is_valid_velocity(int px, int py, int vx, int vy){
+    if (vx > 5 || vy > 5){
+      return 0;
+    }
+
+    int sign_vx = vx >= 0 ? 1 : -1;
+    int sign_vy = vy >= 0 ? 1 : -1;
+    int vx_abs = vx >= 0 ? vx : -vx;
+    int vy_abs = vy >= 0 ? vy : -vy;
+
+    for (int step_vx = 0; step_vx <= vx_abs; step_vx++){
+      for (int step_vy = 0; step_vy <= vy_abs; step_vy++){
+        if(access_velocity_traversed_position(vx_abs, vy_abs, step_vx, step_vy))
+        {
+          int tp_x = px + sign_vx * step_vx;
+          int tp_y = py + sign_vy * step_vy;
+          if (!is_valid_position_nointrinsic(tp_x, tp_y))
+          {
+            return 0;
+          }
+        }
+      }
+    }
+    return 1;
+  }
+  
+
+  int get_wall_distance(int px, int py, int vx, int vy){
+    int distance = 0;
+
+    while(is_valid_velocity(px, py, vx, vy))
+    {
+      px += vx;
+      py += vy;
+      distance ++;
+    }
+
+    return distance;
+  }
+
+  int is_valid_position_nointrinsic(int px, int py)
+  {
+    int map_pos = 0;
+    if((px >= 0)&&(px <14) && (py>=0) && (py <14))
+    {
+	   map_pos = 0;
+    }
+    else if(px == 24 || py == 24)
+    {
+	   map_pos = 0;
+    }
+    else if(px < 0)
+    {
+	   map_pos = 0;
+    }
+    else if (px > 24)
+    {
+	   map_pos = 0;
+    }
+    else if(py < 0)
+    {
+	   map_pos = 0;
+    }
+    else if (py > 24)
+    {
+	   map_pos = 0;
+    }
+    else 
+    {
+	   map_pos = 1;
+    }
+
+    return map_pos;
   }
   
   void exec(intrinsic_t &cs) {
@@ -1935,7 +1975,7 @@ public:
                   continue;
                 }
 
-                distance = compute_wall_distance(px, py, vx, vy);
+                distance = get_wall_distance(px, py, vx, vy);
                 crab::outs() << "Diatnce computed : " << distance << "\n";
                 if(distance < distance_lb)
                   distance_lb = distance;
@@ -2344,29 +2384,7 @@ public:
           for(int py = input_bounds[1].first; py <= input_bounds[1].second; py++){
             for(int vx = input_bounds[2].first; vx <= input_bounds[2].second; vx++){
               for(int vy = input_bounds[3].first; vy <= input_bounds[3].second; vy++){
-                int sign_vx = vx >= 0 ? 1 : -1;
-                int sign_vy = vy >= 0 ? 1 : -1;
-                int vx_abs = vx >= 0 ? vx : -vx;
-                int vy_abs = vy >= 0 ? vy : -vy;
-                int is_valid = 2;
-
-                for (int step_vx = 0; step_vx <= vx_abs; step_vx++){
-                  for (int step_vy = 0; step_vy <= vy_abs; step_vy++){
-                    int tp_x = px + sign_vx * step_vx;
-                    int tp_y = py + sign_vy * step_vy;
-                    if(access_velocity_traversed_position(vx_abs, vy_abs, step_vx, step_vy))
-                    {  
-                      if (!is_valid_position_nointrinsic(tp_x, tp_y))
-                      {
-                        is_valid = 0;
-                      }
-                    }
-                  }
-                }
-
-                if(is_valid != 0){
-                  is_valid = 1;
-                }
+                int is_valid = is_valid_velocity(px, py, vx, vy);
 
                 validity.insert(is_valid);
               }
