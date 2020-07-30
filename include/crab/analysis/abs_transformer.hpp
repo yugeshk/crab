@@ -868,9 +868,14 @@ public:
       crab::outs() << "Entering the deepsymbol intrinsic\n";
 
       //Step 1 : Prepare input_box_int
-      AbsD pre_invs(m_inv);
       std::vector<var_t> args_list = cs.get_args();
       std::string call_st = cs.get_string();
+      var_t var_ax = args_list[14];
+      var_t var_ay = args_list[15];
+      //Forget what we know about acceleration
+      m_inv -= var_ax;
+      m_inv -= var_ay;
+      AbsD pre_invs(m_inv);
 
       crab::outs() << "This is the call statement : " << call_st << "\n";
       std::map<std::string, int> llvmVar_featureIndex_map;
