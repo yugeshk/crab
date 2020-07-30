@@ -1131,10 +1131,15 @@ public:
           }
 
           crab::outs() << "Acceleration disjuncts : " << boxes << "\n\n\n";
-        
-          // abs_dom_t dct = abs_dom_t::top();
-          // dct += d_ct;
+
+          auto tmp1 = new_m_inv.get_content_domain();
+          tmp1.project(cs.get_args());
+          crab::outs() << "new_m_inv before updaate " << tmp1 << "\n";
           new_m_inv |= m_inv&boxes;
+          
+          tmp1 = new_m_inv.get_content_domain();
+          tmp1.project(cs.get_args());
+          crab::outs() << "new_m_inv after updaate " << tmp1 << "\n";
 
         }                                                                            
                                                                                    
@@ -2435,7 +2440,6 @@ public:
       tmp1.project(cs.get_args());
 
       crab::outs() << "Projected invariants at exit : " << tmp1 << "\n**********\n";
-
       
     }
     else{
