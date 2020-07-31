@@ -1726,6 +1726,7 @@ public:
 
                     //Now I have to execute the acceleration here
                     if(!is_valid_acceleration(px, py, vx, vy, ax, ay)){
+                      crab::outs() << "Invalid State : " << px << " " << py << " " << vx << " " << vy << "\n";
                       new_vals[0] = -100;
                       new_vals[1] = -100;
                       new_vals[2] = -100;
