@@ -1526,7 +1526,6 @@ public:
       AbsD pre_inv(m_inv);
 
       std::vector<var_t> args_list = cs.get_args();
-      var_t var_distance = args_list[6];
 
       // get string name of input variables
       std::string call_st = cs.get_string();
@@ -1680,6 +1679,8 @@ public:
             }
           }   
         }
+
+        crab::outs() << "Reached shadowing" << "\n";
 
         //Create "shadow" invariant to get concerned invariant object from m_inv
         abs_dom_t shadow = abs_dom_t::top();
