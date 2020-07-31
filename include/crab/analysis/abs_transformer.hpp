@@ -1205,6 +1205,12 @@ public:
       crab::outs() << "Call statement for var_map " << cs.get_string() << "\n";
       crab::outs() << "Invariants projected to variables " << pre_invs << "\n";
     }
+    else if(cs.get_intrinsic_name() == "print_state_invariants"){
+      auto pre_invs = m_inv.get_content_domain();
+      pre_invs.project(cs.get_args());
+      crab::outs() << "Call statement for var_map " << cs.get_string() << "\n";
+      crab::outs() << "Invariants projected to state " << pre_invs << "\n";
+    }
     else if(cs.get_intrinsic_name() == "access_map"){
       //Map
       int CORNER_MAP[25][25] = {
