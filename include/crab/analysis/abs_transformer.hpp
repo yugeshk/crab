@@ -760,6 +760,41 @@ public:
       return velocity_to_traversed_positions[a][b][c][d];
   }
 
+  int is_valid_position_nointrinsic(int px, int py)
+  {
+    int map_pos = 0;
+    if((px >= 0)&&(px <14) && (py>=0) && (py <14))
+    {
+	   map_pos = 0;
+    }
+    else if(px == 24 || py == 24)
+    {
+	   map_pos = 0;
+    }
+    else if(px < 0)
+    {
+	   map_pos = 0;
+    }
+    else if (px > 24)
+    {
+	   map_pos = 0;
+    }
+    else if(py < 0)
+    {
+	   map_pos = 0;
+    }
+    else if (py > 24)
+    {
+	   map_pos = 0;
+    }
+    else 
+    {
+	   map_pos = 1;
+    }
+
+    return map_pos;
+  }
+
   int is_valid_velocity(int px, int py, int vx, int vy){
     if (vx > 5 || vy > 5){
       return 0;
@@ -800,44 +835,9 @@ public:
     return distance;
   }
 
-  int is_valid_position_nointrinsic(int px, int py)
-  {
-    int map_pos = 0;
-    if((px >= 0)&&(px <14) && (py>=0) && (py <14))
-    {
-	   map_pos = 0;
-    }
-    else if(px == 24 || py == 24)
-    {
-	   map_pos = 0;
-    }
-    else if(px < 0)
-    {
-	   map_pos = 0;
-    }
-    else if (px > 24)
-    {
-	   map_pos = 0;
-    }
-    else if(py < 0)
-    {
-	   map_pos = 0;
-    }
-    else if (py > 24)
-    {
-	   map_pos = 0;
-    }
-    else 
-    {
-	   map_pos = 1;
-    }
-
-    return map_pos;
-  }
-
   int is_valid_acceleration(int px, int py, int vx, int vy, int ax, int ay){
     vx += ax;
-    vy += vy;
+    vy += ay;
     return is_valid_velocity(px, py, vx, vy);
   }
   
@@ -1726,7 +1726,7 @@ public:
 
                     //Now I have to execute the acceleration here
                     if(!is_valid_acceleration(px, py, vx, vy, ax, ay)){
-                      crab::outs() << "Invalid State : " << px << " " << py << " " << vx << " " << vy << "\n";
+                      crab::outs() << "Invalid State : " << px << " " << py << " " << vx << " " << vy << " " << ax << " " << ay <<"\n";
                       new_vals[0] = -100;
                       new_vals[1] = -100;
                       new_vals[2] = -100;
