@@ -834,6 +834,12 @@ public:
 
     return map_pos;
   }
+
+  int is_valid_acceleration(int px, int py, int vx, int vy, int ax, int ay){
+    vx += ax;
+    vy += vy;
+    return is_valid_velocity(px, py, vx, vy);
+  }
   
   void exec(intrinsic_t &cs) {
 
@@ -1515,6 +1521,248 @@ public:
       // crab::outs() << "This is m_inv projected to z with lin cst " << tmp.to_linear_constraint_system().get_string() << "\n";
       crab::outs() << "Ended intrinsic" << "\n\n\n";
 
+    }
+    else if(cs.get_intrinsic_name() == "execute_acceleration"){
+      AbsD pre_inv(m_inv);
+
+      std::vector<var_t> args_list = cs.get_args();
+      var_t var_distance = args_list[6];
+
+      // get string name of input variables
+      std::string call_st = cs.get_string();
+      crab::outs() << "This is the call statement : " << call_st << "\n";
+      call_st = call_st.substr(call_st.find("(") + 1, call_st.find(")") - call_st.find("(") - 1);
+      std::istringstream iss1(call_st);
+      int index = 0;
+      std::vector<std::string> llvm_Vars;
+      std::string item;
+      while(std::getline(iss1, item, ',')){
+        if(index == 0){
+          if(item.substr(0, item.find(":")) != "execute_acceleration"){
+            crab::outs() << "Malformed instrinsic statement call" << "\n";
+            std::exit(1);
+          }
+        }
+        else if(index >=1 && index <=6){
+          llvm_Vars.push_back(item.substr(0, item.find(":")));
+        }
+        else{
+          crab::outs() << "More than expected arguements passed" << "\n";
+          std::exit(1);
+        }
+        index++;
+      }
+
+      //Get the Invariants
+      auto pre_inv_boxes = m_inv.get_content_domain();
+      pre_inv_boxes.project(cs.get_args());
+      auto djct_csts = pre_inv_boxes.to_disjunctive_linear_constraint_system();
+      crab::outs() << "Projected invariants at entry : " << djct_csts << "\n";
+
+      //Iterate over each disjunct in djct_csts
+      abs_dom_t new_m_inv = abs_dom_t::bottom();
+      for(auto &d_ct: djct_csts){
+        std::string invars = d_ct.get_string(); //get string of preconds invariants
+        crab::outs() << "\nThis is the linear cst in a disjunct : " << invars << "\n";
+        if(invars.size() < 2){
+          crab::outs() << "Malformed lin_cst string in intrinsic (check variable pre_invars)" << "\n";
+          std::exit(1);
+        }
+
+        invars = invars.substr(1, invars.size()-2); //Stripped braces
+
+        std::vector<std::string> lin_cst;
+        std::vector<std::vector<std::string>> tokens;
+        std::istringstream iss2(invars);
+        while(std::getline(iss2, item, ';')){
+          item = trim(item);
+          std::stringstream ss(item);  //String of individual lin_cst
+          std::istream_iterator<std::string> begin(ss);
+          std::istream_iterator<std::string> end;
+          std::vector<std::string> lin_cst(begin, end); //Convert each linear_cst to its tokens
+          tokens.push_back(lin_cst);
+        }
+
+        std::vector<std::pair<int, int>> input_bounds(6, std::make_pair(-100,-100));
+        for(auto it: tokens){
+          if((it.size()!=3) && (it[0]!= "true") && (it[0]!= "false")){
+            crab::outs() << "Malformed lin_cst token. Exitting" << "\n";
+            std::exit(1);
+          }
+          else if(it.size()==3){
+            item = it[0]; //String of llvm variable
+            if(item.at(0)=='-'){
+              item = item.substr(1, item.size()-1);
+              auto index_it = std::find(llvm_Vars.begin(), llvm_Vars.end(), item);
+              if(index_it == llvm_Vars.end()){
+                crab::outs() << "Variable not found. Exitting\n";
+                std::exit(1);
+              }
+
+              int index = std::distance(llvm_Vars.begin(), index_it);
+              if(it[1] == "="){
+                input_bounds[index].first = -1*std::stoi(it[2]);
+                input_bounds[index].second = -1*std::stoi(it[2]);
+              }
+              else if(it[1] == "<"){
+                input_bounds[index].first = -1*std::stoi(it[2])+1;
+              }
+              else if(it[1] == "<="){
+                input_bounds[index].first = -1*std::stoi(it[2]);
+              }
+              else if(it[1] == ">"){
+                input_bounds[index].second = -1*std::stoi(it[2])-1;
+              }
+              else if(it[1] == ">="){
+               input_bounds[index].second = -1*std::stoi(it[2]);
+              }
+              else{
+                crab::outs() << "LIN CST OPERATOR INVALID. EXITTING" << "\n";
+                exit(1);
+              }
+            }
+            else{
+              auto index_it = std::find(llvm_Vars.begin(), llvm_Vars.end(), item);
+              if(index_it == llvm_Vars.end()){
+                crab::outs() << "Variable not found. Exitting";
+                std::exit(1);
+              }
+
+              int index = std::distance(llvm_Vars.begin(), index_it);
+              if(it[1] == "="){
+                input_bounds[index].first = std::stoi(it[2]);
+                input_bounds[index].second = std::stoi(it[2]);
+              }
+              else if(it[1] == "<"){
+                input_bounds[index].second = std::stoi(it[2])-1;
+              }
+              else if(it[1] == "<="){
+                input_bounds[index].second = std::stoi(it[2]);
+              }
+              else if(it[1] == ">"){
+                input_bounds[index].first = std::stoi(it[2])+1;
+              }
+              else if(it[1] == ">="){
+               input_bounds[index].first = std::stoi(it[2]);
+              }
+              else{
+                crab::outs() << "LIN CST OPERATOR INVALID. EXITTING" << "\n";
+                exit(1);
+              }
+            }
+          }
+        }
+
+        //Sanitize input_bounds if uninitialized
+        for(int i=0;i<6;i++){
+          if(i==0||i==1){
+            if(input_bounds[i].first == -100){
+              input_bounds[i].first = 0;
+            }
+            if(input_bounds[i].second == -100){
+              input_bounds[i].second = 25;
+            }
+          }
+          else if(i==2||i==3){
+            if(input_bounds[i].first == -100){
+              input_bounds[i].first = 0;
+            }
+            if(input_bounds[i].second == -100){
+              input_bounds[i].second = 5;
+            }
+          }
+          else{
+            if(input_bounds[i].first == -100){
+              input_bounds[i].first = -1;
+            }
+            if(input_bounds[i].second == -100){
+              input_bounds[i].second = 1;
+            }
+          }   
+        }
+
+        //Create "shadow" invariant to get concerned invariant object from m_inv
+        abs_dom_t shadow = abs_dom_t::top();
+        var_t pos_x = args_list[0];
+        var_t pos_y = args_list[1];
+        var_t vel_x = args_list[2];
+        var_t vel_y = args_list[3];
+        var_t acc_x = args_list[4];
+        var_t acc_y = args_list[5];
+        lin_cst_t cst[12];
+        for(int i=0;i <6; i++){
+          var_t v = args_list[i];
+          cst[2*i] = lin_cst_t(v >= number_t(input_bounds[i].first));
+          cst[2*i+1] = lin_cst_t(v >= number_t(input_bounds[i].second));
+        }
+        for(int i=0;i<12;i++){
+          shadow += cst[i];
+        }
+
+        abs_dom_t disjunct = abs_dom_t::bottom();
+        abs_dom_t conjunct = abs_dom_t::bottom();
+        disjunct = m_inv&shadow;
+        for(int i=0;i<6;i++){
+          disjunct -= args_list[i]; //Forget what we know about px,py,vx,vy,ax,ay in the disjunct
+        }
+
+        //Concretize input_bounds in loops and for each concrete value, compute concrete output
+        for(int px=input_bounds[0].first; px<=input_bounds[0].second;px++){
+          for(int py=input_bounds[1].first; py<=input_bounds[1].second;py++){
+            for(int vx=input_bounds[2].first; vx<=input_bounds[2].second;vx++){
+              for(int vy=input_bounds[3].first; vy<=input_bounds[3].second;vy++){
+                for(int ax=input_bounds[4].first; ax<=input_bounds[4].second;ax++){
+                  for(int ay=input_bounds[5].first; ay<=input_bounds[5].second;ay++){
+
+                    int new_vals[6];
+                    new_vals[0] = px;
+                    new_vals[1] = py;
+                    new_vals[2] = vx;
+                    new_vals[3] = vy;
+                    new_vals[4] = ax;
+                    new_vals[5] = ay;
+
+                    //Now I have to execute the acceleration here
+                    if(!is_valid_acceleration(px, py, vx, vy, ax, ay)){
+                      new_vals[0] = -100;
+                      new_vals[1] = -100;
+                      new_vals[2] = -100;
+                      new_vals[3] = -100;
+                    }
+                    else{
+                      new_vals[2] += ax;
+                      new_vals[3] += ay;
+                      new_vals[0] += new_vals[2];
+                      new_vals[1] += new_vals[3];
+                    }
+
+                    lin_cst_t new_cst[6];
+                    for(int i=0;i <6; i++){
+                      var_t v = args_list[i];
+                      new_cst[i] = lin_cst_t(v == number_t(new_vals[i]));
+                    }
+
+                    abs_dom_t conjunction = abs_dom_t::top();
+                    for(int i=0;i<6;i++){
+                      conjunction += new_cst[i];
+                    }
+
+                    conjunct |= conjunction;
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        new_m_inv |= disjunct&conjunct;
+      }
+      
+      m_inv = new_m_inv;
+      auto tmp1 = m_inv.get_content_domain();
+      tmp1.project(cs.get_args());
+
+      crab::outs() << "Projected invariants at exit : " << tmp1 << "\n**********\n";
     }
     else if(cs.get_intrinsic_name() == "access_velocity_traversed_position"){
       int velocity_to_traversed_positions[6][6][6][6] ={
