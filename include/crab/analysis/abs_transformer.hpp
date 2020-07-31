@@ -1526,6 +1526,10 @@ public:
       AbsD pre_inv(m_inv);
 
       std::vector<var_t> args_list = cs.get_args();
+      //Forget what we know about the next state
+      for(int i=6;i<10;i++){
+        m_inv -= args_list[i];
+      }
 
       // get string name of input variables
       std::string call_st = cs.get_string();
@@ -1542,11 +1546,11 @@ public:
             std::exit(1);
           }
         }
-        else if(index >=1 && index <=6){
+        else if(index >=1 && index <=10){
           llvm_Vars.push_back(item.substr(0, item.find(":")));
         }
         else{
-          crab::outs() << "More than expected arguements passed" << "\n";
+          crab::outs() << "More than expected " << index << " arguements passed" << "\n";
           std::exit(1);
         }
         index++;
@@ -1703,9 +1707,6 @@ public:
         abs_dom_t disjunct = abs_dom_t::bottom();
         abs_dom_t conjunct = abs_dom_t::bottom();
         disjunct = m_inv&shadow;
-        for(int i=0;i<6;i++){
-          disjunct -= args_list[i]; //Forget what we know about px,py,vx,vy,ax,ay in the disjunct
-        }
 
         //Concretize input_bounds in loops and for each concrete value, compute concrete output
         for(int px=input_bounds[0].first; px<=input_bounds[0].second;px++){
@@ -1737,14 +1738,14 @@ public:
                       new_vals[1] += new_vals[3];
                     }
 
-                    lin_cst_t new_cst[6];
-                    for(int i=0;i <6; i++){
-                      var_t v = args_list[i];
+                    lin_cst_t new_cst[4];
+                    for(int i=0;i <4; i++){
+                      var_t v = args_list[i+6];
                       new_cst[i] = lin_cst_t(v == number_t(new_vals[i]));
                     }
 
                     abs_dom_t conjunction = abs_dom_t::top();
-                    for(int i=0;i<6;i++){
+                    for(int i=0;i<4;i++){
                       conjunction += new_cst[i];
                     }
 
