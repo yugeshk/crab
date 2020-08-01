@@ -2447,7 +2447,6 @@ public:
         // crab::outs() << "Bounds on position : " << input_bounds[0].first << ", " << input_bounds[0].second << ", " << input_bounds[1].first << ", " << input_bounds[1].second << "\n";
 
         //Use Input_bounds to compute goal distance
-        int gdistx_lb = 1000, gdistx_ub = 0, gdisty_lb = 1000, gdisty_ub = 0;
         for(int px = input_bounds[0].first; px <= input_bounds[0].second; px++){
           for(int py = input_bounds[1].first; py <= input_bounds[1].second; py++){
             int goal_x, goal_y, g_l1 = 50, g_x = 25, g_y = 25;
@@ -2464,17 +2463,24 @@ public:
               }
             }
             //g_x and g_y computed for particular (px, py)
-            if(g_x < gdistx_lb)
-              gdistx_lb = g_x;
-            
-            if(g_x > gdistx_ub)
-              gdistx_ub = g_x;
+            //Create linear_cst
+            var_t pos_x = args_list[0];
+            var_t pos_y = args_list[1];
 
-            if(g_y < gdisty_lb)
-              gdisty_lb = g_y;
+            abs_dom_t boxes = abs_dom_t::bottom();
+            abs_dom_t conjunction = abs_dom_t::top();
+            lin_cst_t cst1(distance_x == number_t(g_x));
+            lin_cst_t cst2(distance_y == number_t(g_y));
+            lin_cst_t cst3(pos_x == number_t(px));
+            lin_cst_t cst4(pos_y == number_t(py));
+            conjunction += cst1;
+            conjunction += cst2;
+            conjunction += cst3;
+            conjunction += cst4;
+            boxes |= conjunction;
 
-            if(g_y > gdisty_ub)
-              gdisty_ub = g_y;
+            crab::outs() << "Goal Distance invariant : " << boxes << "\n\n";
+            new_m_inv |= m_inv&boxes;
             
           }
         }
@@ -2482,31 +2488,31 @@ public:
         // crab::outs() << "Bounds on distance : " << gdistx_lb << "," << gdistx_ub << " , " << gdisty_lb << "," << gdisty_ub << "\n";
 
         //Create linear_cst
-        var_t pos_x = args_list[0];
-        var_t pos_y = args_list[1];
+        // var_t pos_x = args_list[0];
+        // var_t pos_y = args_list[1];
 
-        abs_dom_t boxes = abs_dom_t::bottom();
-        abs_dom_t conjunction = abs_dom_t::top();
-        lin_cst_t cst1(distance_x >= number_t(gdistx_lb));
-        lin_cst_t cst2(distance_x <= number_t(gdistx_ub));
-        lin_cst_t cst3(distance_y >= number_t(gdisty_lb));
-        lin_cst_t cst4(distance_y <= number_t(gdisty_ub));
-        lin_cst_t cst5(pos_x >= number_t(input_bounds[0].first));
-        lin_cst_t cst6(pos_x <= number_t(input_bounds[0].second));
-        lin_cst_t cst7(pos_y >= number_t(input_bounds[1].first));
-        lin_cst_t cst8(pos_y <= number_t(input_bounds[1].second));
-        conjunction += cst1;
-        conjunction += cst2;
-        conjunction += cst3;
-        conjunction += cst4;
-        conjunction += cst5; 
-        conjunction += cst6;
-        conjunction += cst7; 
-        conjunction += cst8;
-        boxes |= conjunction;
+        // abs_dom_t boxes = abs_dom_t::bottom();
+        // abs_dom_t conjunction = abs_dom_t::top();
+        // lin_cst_t cst1(distance_x >= number_t(gdistx_lb));
+        // lin_cst_t cst2(distance_x <= number_t(gdistx_ub));
+        // lin_cst_t cst3(distance_y >= number_t(gdisty_lb));
+        // lin_cst_t cst4(distance_y <= number_t(gdisty_ub));
+        // lin_cst_t cst5(pos_x >= number_t(input_bounds[0].first));
+        // lin_cst_t cst6(pos_x <= number_t(input_bounds[0].second));
+        // lin_cst_t cst7(pos_y >= number_t(input_bounds[1].first));
+        // lin_cst_t cst8(pos_y <= number_t(input_bounds[1].second));
+        // conjunction += cst1;
+        // conjunction += cst2;
+        // conjunction += cst3;
+        // conjunction += cst4;
+        // conjunction += cst5; 
+        // conjunction += cst6;
+        // conjunction += cst7; 
+        // conjunction += cst8;
+        // boxes |= conjunction;
 
-        crab::outs() << "Goal Distance invariant : " << boxes << "\n\n";
-        new_m_inv |= m_inv&boxes;
+        // crab::outs() << "Goal Distance invariant : " << boxes << "\n\n";
+        // new_m_inv |= m_inv&boxes;
       }
 
       m_inv = new_m_inv;
