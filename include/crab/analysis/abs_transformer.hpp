@@ -2249,39 +2249,57 @@ public:
                 }
 
                 distance = get_wall_distance(px, py, vx, vy);
-                crab::outs() << "Diatnce computed : " << distance << "\n";
-                if(distance < distance_lb)
-                  distance_lb = distance;
-                
-                if(distance > distance_ub)
-                  distance_ub = distance;
+                crab::outs() << "Distance computed : " << distance << "\n";
+
+                var_t pos_x = args_list[0];
+                var_t pos_y = args_list[1];
+                var_t vel_x = args_list[2];
+                var_t vel_y = args_list[3];
+
+                abs_dom_t boxes = abs_dom_t::bottom();
+                abs_dom_t conjunction = abs_dom_t::top();
+                lin_cst_t cst1(var_distance == number_t(distance));
+                lin_cst_t cst2(pos_x == number_t(px));
+                lin_cst_t cst3(pos_y == number_t(py));
+                lin_cst_t cst4(vel_x == number_t(vx));
+                lin_cst_t cst5(vel_y == number_t(vy));
+                conjunction += cst1;
+                conjunction += cst2;
+                conjunction += cst3;
+                conjunction += cst4;
+                conjunction += cst5;
+                boxes |= conjunction;
+
+                crab::outs() << "Distance invariant : " << boxes << "\n\n";
+                new_m_inv |= m_inv&boxes;
+
               }
             }
           }
         }
 
-        //Create linear_cst
-        var_t pos_x = args_list[0];
-        var_t pos_y = args_list[1];
+        // //Create linear_cst
+        // var_t pos_x = args_list[0];
+        // var_t pos_y = args_list[1];
 
-        abs_dom_t boxes = abs_dom_t::bottom();
-        abs_dom_t conjunction = abs_dom_t::top();
-        lin_cst_t cst1(var_distance >= number_t(distance_lb));
-        lin_cst_t cst2(var_distance <= number_t(distance_ub));
-        lin_cst_t cst3(pos_x >= number_t(input_bounds[0].first));
-        lin_cst_t cst4(pos_x <= number_t(input_bounds[0].second));
-        lin_cst_t cst5(pos_y >= number_t(input_bounds[1].first));
-        lin_cst_t cst6(pos_y <= number_t(input_bounds[1].second));
-        conjunction += cst1;
-        conjunction += cst2;
-        conjunction += cst3;
-        conjunction += cst4;
-        conjunction += cst5; 
-        conjunction += cst6;
-        boxes |= conjunction;
+        // abs_dom_t boxes = abs_dom_t::bottom();
+        // abs_dom_t conjunction = abs_dom_t::top();
+        // lin_cst_t cst1(var_distance >= number_t(distance_lb));
+        // lin_cst_t cst2(var_distance <= number_t(distance_ub));
+        // lin_cst_t cst3(pos_x >= number_t(input_bounds[0].first));
+        // lin_cst_t cst4(pos_x <= number_t(input_bounds[0].second));
+        // lin_cst_t cst5(pos_y >= number_t(input_bounds[1].first));
+        // lin_cst_t cst6(pos_y <= number_t(input_bounds[1].second));
+        // conjunction += cst1;
+        // conjunction += cst2;
+        // conjunction += cst3;
+        // conjunction += cst4;
+        // conjunction += cst5; 
+        // conjunction += cst6;
+        // boxes |= conjunction;
 
-        crab::outs() << "Distance invariant : " << boxes << "\n\n";
-        new_m_inv |= m_inv&boxes;
+        // crab::outs() << "Distance invariant : " << boxes << "\n\n";
+        // new_m_inv |= m_inv&boxes;
       }
       
       m_inv = new_m_inv;
