@@ -1733,7 +1733,7 @@ public:
         for(int i=0;i <6; i++){
           var_t v = args_list[i];
           cst[2*i] = lin_cst_t(v >= number_t(input_bounds[i].first));
-          cst[2*i+1] = lin_cst_t(v >= number_t(input_bounds[i].second));
+          cst[2*i+1] = lin_cst_t(v <= number_t(input_bounds[i].second));
         }
         for(int i=0;i<12;i++){
           shadow += cst[i];
@@ -2124,7 +2124,7 @@ public:
       AbsD pre_inv(m_inv);
 
       std::vector<var_t> args_list = cs.get_args();
-      var_t var_distance = args_list[4];
+      var_t var_distance = args_list[6];
       //Forget what we know about distance
       m_inv -= var_distance;
 
@@ -2143,7 +2143,7 @@ public:
             std::exit(1);
           }
         }
-        else if(index >=1 && index <=5){
+        else if(index >=1 && index <=7){
           llvm_Vars.push_back(item.substr(0, item.find(":")));
         }
         else{
@@ -2183,7 +2183,7 @@ public:
           tokens.push_back(lin_cst);
         }
 
-        std::vector<std::pair<int, int>> input_bounds(4, std::make_pair(-100,-100));
+        std::vector<std::pair<int, int>> input_bounds(6, std::make_pair(-100,-100));
         for(auto it: tokens){
           if((it.size()!=3) && (it[0]!= "true") && (it[0]!= "false")){
             crab::outs() << "Malformed lin_cst token. Exitting" << "\n";
@@ -2263,8 +2263,9 @@ public:
               input_bounds[i].second = 25;
             }
           }
-          else{
-            if(input_bounds[i].first == -100){
+          else if(i==2||i==3){
+            if(input_bounds[i].first == -100)
+            {
               input_bounds[i].first = 0;
             }
             if(input_bounds[i].second == -100){
@@ -2279,17 +2280,22 @@ public:
           for(int py = input_bounds[1].first; py <= input_bounds[1].second; py++){
             for(int vx = input_bounds[2].first; vx <= input_bounds[2].second; vx++){
               for(int vy = input_bounds[3].first; vy <= input_bounds[3].second; vy++){
-                if(vx==0 && vy==0){
+                for(int dx = input_bounds[4].first; dx <= input_bounds[4].second; dx++){
+                  for(int dy = input_bounds[5].first; dy <= input_bounds[5].second; dy++){
+                
+                if(dx==0 && dy==0){
                   continue;
                 }
 
-                distance = get_wall_distance(px, py, vx, vy);
+                distance = get_wall_distance(px, py, dx, dy);
                 crab::outs() << "Distance computed : " << distance << "\n";
 
                 var_t pos_x = args_list[0];
                 var_t pos_y = args_list[1];
                 var_t vel_x = args_list[2];
                 var_t vel_y = args_list[3];
+                var_t dir_x = args_list[4];
+                var_t dir_y = args_list[5];
 
                 abs_dom_t boxes = abs_dom_t::bottom();
                 abs_dom_t conjunction = abs_dom_t::top();
@@ -2298,15 +2304,21 @@ public:
                 lin_cst_t cst3(pos_y == number_t(py));
                 lin_cst_t cst4(vel_x == number_t(vx));
                 lin_cst_t cst5(vel_y == number_t(vy));
+                lin_cst_t cst6(dir_x == number_t(dx));
+                lin_cst_t cst7(dir_y == number_t(dy));
                 conjunction += cst1;
                 conjunction += cst2;
                 conjunction += cst3;
                 conjunction += cst4;
                 conjunction += cst5;
+                conjunction += cst6;
+                conjunction += cst7;
                 boxes |= conjunction;
 
                 crab::outs() << "Distance invariant : " << boxes << "\n\n";
                 new_m_inv |= m_inv&boxes;
+                  }
+                }
 
               }
             }
@@ -2348,8 +2360,8 @@ public:
       AbsD pre_inv;
 
       std::vector<var_t> args_list = cs.get_args();
-      var_t distance_x = args_list[2];
-      var_t distance_y = args_list[3];
+      var_t distance_x = args_list[4];
+      var_t distance_y = args_list[5];
       //Forget anything we know about these
       m_inv -= distance_x;
       m_inv -= distance_y;
@@ -2369,7 +2381,7 @@ public:
             std::exit(1);
           }
         }
-        else if(index >=1 && index <=4){
+        else if(index >=1 && index <=6){
           llvm_Vars.push_back(item.substr(0, item.find(":")));
         }
         else{
@@ -2409,7 +2421,7 @@ public:
           tokens.push_back(lin_cst);
         }
 
-        std::vector<std::pair<int, int>> input_bounds(2, std::make_pair(0,0));
+        std::vector<std::pair<int, int>> input_bounds(4, std::make_pair(0,0));
         for(auto it: tokens){
           if((it.size()!=3) && (it[0]!= "true") && (it[0]!= "false")){
             crab::outs() << "Malformed lin_cst token. Exitting" << "\n";
@@ -2484,6 +2496,9 @@ public:
         //Use Input_bounds to compute goal distance
         for(int px = input_bounds[0].first; px <= input_bounds[0].second; px++){
           for(int py = input_bounds[1].first; py <= input_bounds[1].second; py++){
+            for(int vx = input_bounds[2].first; vx <= input_bounds[2].second; vx++){
+              for(int vy = input_bounds[3].first; vy <= input_bounds[3].second; vy++){
+            
             int goal_x, goal_y, g_l1 = 50, g_x = 25, g_y = 25;
             for(int i=0; i<10; i++){
               goal_x = i+14;
@@ -2497,10 +2512,12 @@ public:
                 g_l1 = l1;
               }
             }
-            //g_x and g_y computed for particular (px, py)
+            //g_x and g_y computed for particular (px, py, vx, vy)
             //Create linear_cst
             var_t pos_x = args_list[0];
             var_t pos_y = args_list[1];
+            var_t vel_x = args_list[2];
+            var_t vel_y = args_list[3];
 
             abs_dom_t boxes = abs_dom_t::bottom();
             abs_dom_t conjunction = abs_dom_t::top();
@@ -2508,14 +2525,20 @@ public:
             lin_cst_t cst2(distance_y == number_t(g_y));
             lin_cst_t cst3(pos_x == number_t(px));
             lin_cst_t cst4(pos_y == number_t(py));
+            lin_cst_t cst5(vel_x == number_t(vx));
+            lin_cst_t cst6(vel_y == number_t(vy));
             conjunction += cst1;
             conjunction += cst2;
             conjunction += cst3;
             conjunction += cst4;
+            conjunction += cst5;
+            conjunction += cst6;
             boxes |= conjunction;
 
             crab::outs() << "Goal Distance invariant : " << boxes << "\n\n";
             new_m_inv |= m_inv&boxes;
+              }
+            }
             
           }
         }
