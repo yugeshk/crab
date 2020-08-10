@@ -60,6 +60,8 @@
 #include <fstream>
 #include <time.h>
 
+#define CON(i) for(loopv[i]=input_box_int[i].first; loopv[i]<=input_box_int[i].second;loopv[i]++)
+
 namespace crab {
 namespace analyzer {
 
@@ -1053,6 +1055,25 @@ public:
           }
         }
 
+        //Do this for each concretized state from input_box_int (has 14 feature values)
+        int loopv[14];
+        CON(0){
+        CON(1){
+        CON(2){
+        CON(3){
+        CON(4){
+        CON(5){
+        CON(6){
+        CON(7){
+        CON(8){
+        CON(9){
+        CON(10){
+        CON(11){
+        CON(12){
+        CON(13){
+
+        
+
         crab::outs() << "Making deepsymbol call" << "\n";
 
         //Step 2 : Make the call to DeepSymbol
@@ -1187,6 +1208,20 @@ public:
         crab::outs() << "EXITTING INTRINSIC\n\n";
 
       }
+      }
+        }
+        }
+        }
+        }
+        }
+        }
+        }
+        }
+        }
+        }
+        }
+        }
+        }
 
       m_inv = new_m_inv;
       auto tmp1 = m_inv.get_content_domain();
