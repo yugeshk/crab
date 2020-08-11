@@ -2648,6 +2648,7 @@ public:
           result += r;
           m_inv = m_inv&result;
           crab::outs() << "Crashed\n";
+          m_inv = abs_dom_t::bottom();
         }
         
       }
