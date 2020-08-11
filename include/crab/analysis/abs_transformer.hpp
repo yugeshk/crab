@@ -1100,8 +1100,8 @@ public:
 
           int arr[28];                                                             
           for(int i=0;i<14;i++){                                                   
-            arr[2*i] = input_box_int[i].first;                                   
-            arr[2*i+1] = input_box_int[i].second;                                
+            arr[2*i] = loopv[i];                                   
+            arr[2*i+1] = loopv[i];                                
           }                                                                        
 
           //Write the input to the pipe and close writing end                      
@@ -1140,6 +1140,8 @@ public:
 
           var_t pos_x = args_list[0];
           var_t pos_y = args_list[1];
+          var_t vel_x = args_list[2];
+          var_t vel_y = args_list[3];
 
           var_t ax = args_list[14];
           var_t ay = args_list[15];
@@ -1149,10 +1151,10 @@ public:
             abs_dom_t conjunction = abs_dom_t::top(); 
             lin_cst_t cst1(ax == number_t(p.first));
             lin_cst_t cst2(ay == number_t(p.second));
-            lin_cst_t cst3(pos_x >= number_t(input_box_int[0].first));
-            lin_cst_t cst4(pos_x <= number_t(input_box_int[0].second));
-            lin_cst_t cst5(pos_y >= number_t(input_box_int[1].first));
-            lin_cst_t cst6(pos_y <= number_t(input_box_int[1].second));
+            lin_cst_t cst3(pos_x == number_t(loopv[0]));
+            lin_cst_t cst4(vel_x == number_t(loopv[2]));
+            lin_cst_t cst5(pos_y == number_t(loopv[1]));
+            lin_cst_t cst6(vel_y == number_t(loopv[3]));
             conjunction += cst1;
             conjunction += cst2;
             conjunction += cst3;
