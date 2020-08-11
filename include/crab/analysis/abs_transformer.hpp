@@ -2122,6 +2122,18 @@ public:
       m_inv |= boxes;
       crab::outs() << "This is m_inv : " << m_inv.to_linear_constraint_system().get_string() << "\n"; 
     }
+    else if(cs.get_intrinsic_name() == "to_one"){
+      AbsD pre_inv(m_inv);
+      std::vector<var_t> args_list = cs.get_args();
+      var_t v = args_list[0];
+
+      //Forget what we know about v
+      m_inv -= v;
+      lin_cst_t cst(v == number_t(1));
+      abs_dom_t boxes = abs_dom_t::top();
+      boxes += cst;
+      m_inv = m_inv&boxes;
+    }
     else if(cs.get_intrinsic_name() == "get_wall_distance"){
       AbsD pre_inv(m_inv);
 
