@@ -2582,6 +2582,69 @@ public:
       crab::outs() << "Projected invariants at exit : " << tmp1 << "\n**********\n";
 
     }
+    else if(cs.get_intrinsic_name() == "is_goal_state"){
+
+      std::vector<var_t> args_list = cs.get_args();
+      var_t ret = args_list[4];
+      //Forget what we know about ret
+      m_inv -= ret;
+
+      //Create goal constraints
+      abs_dom_t goal_check = abs_dom_t::top();
+      lin_cst_t cst1(args_list[0] >= number_t(14));
+      lin_cst_t cst2(args_list[0] <= number_t(23));
+      lin_cst_t cst3(args_list[1] == number_t(0));
+      lin_cst_t cst4(args_list[2] == number_t(0));
+      lin_cst_t cst5(args_list[3] == number_t(0));
+      goal_check += cst1;
+      goal_check += cst2;
+      goal_check += cst3;
+      goal_check += cst4;
+      goal_check += cst5;
+
+      //Create null constraints
+      abs_dom_t null_check = abs_dom_t::top();
+      lin_cst_t cst6(args_list[0] == number_t(-100));
+      lin_cst_t cst8(args_list[1] == number_t(-100));
+      lin_cst_t cst9(args_list[2] == number_t(-100));
+      lin_cst_t cst10(args_list[3] == number_t(-100));
+      null_check += cst6;
+      null_check += cst8;
+      null_check += cst9;
+      null_check += cst10;
+
+      abs_dom_t result = abs_dom_t::top();
+      auto check = m_inv&goal_check;
+      if(check.is_bottom()){
+        lin_cst_t r(ret == number_t(0));
+        result += r;
+        m_inv = m_inv&result;
+      }
+      else{
+        auto nc = m_inv&null_check;
+        if(nc.is_bottom()){
+          lin_cst_t r(ret == number_t(1));
+          abs_dom_t res = abs_dom_t::top();
+          res += r;
+          crab::outs() << "Adding to m_inv " << res << "\n";
+          m_inv = m_inv&res;
+          crab::outs() << "Reached goal\n";
+        }
+        else
+        {
+          lin_cst_t r(ret == number_t(0));
+          result += r;
+          m_inv = m_inv&result;
+          crab::outs() << "Crashed\n";
+        }
+        
+      }
+
+      AbsD pre_inv(m_inv);
+      pre_inv.project(cs.get_args());
+
+      crab::outs() << "Invariants at exit " << pre_inv << "\n";
+    }
     else if(cs.get_intrinsic_name() == "is_valid_velocity"){
       AbsD pre_inv(m_inv);
 
