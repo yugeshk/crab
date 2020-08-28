@@ -306,6 +306,8 @@ public:
       }
     }
 
+    crab::outs() << "Reached select statement with branch condition " << stmt.cond() << "\n";
+
     if (inv2.is_bottom()) {
       inv1.assign(stmt.lhs(), stmt.left());
       m_inv = inv1;
