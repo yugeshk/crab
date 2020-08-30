@@ -2989,31 +2989,34 @@ public:
       null_check += cst10;
 
       abs_dom_t result = abs_dom_t::top();
-      auto check = m_inv&goal_check;
-      if(check.is_bottom()){
-        lin_cst_t r(ret == number_t(0));
+      auto check_g = m_inv&goal_check;
+      auto check_n = m_inv&null_check;
+
+      if(check_g.is_bottom() && check_n.is_bottom()){
+        lin_cst_t r(ret == number_t(2)); //Neither goal nor crash
         result += r;
         m_inv = m_inv&result;
       }
+      else if(check_g.is_bottom() && !check_n.is_bottom()){
+        lin_cst_t r(ret == number_t(0)); //Crash
+        result += r;
+        m_inv = m_inv&result;
+        crab::outs() << "Crashed\n";
+      }
+      else if(!check_g.is_bottom() && check_n.is_bottom()){
+        lin_cst_t r(ret == number_t(1)); //Safe
+        result += r;
+        m_inv = m_inv&result;
+        crab::outs() << "Reached goal\n";
+      }
+      else if(!check_g.is_bottom() && !check_n.is_bottom()){
+        lin_cst_t r(ret == number_t(0)); //we treat this as Crash
+        result += r;
+        m_inv = m_inv&result;
+        crab::outs() << "Crashed\n";
+      }
       else{
-        auto nc = m_inv&null_check;
-        if(nc.is_bottom()){
-          lin_cst_t r(ret == number_t(1));
-          abs_dom_t res = abs_dom_t::top();
-          res += r;
-          crab::outs() << "Adding to m_inv " << res << "\n";
-          m_inv = m_inv&res;
-          crab::outs() << "Reached goal\n";
-        }
-        else
-        {
-          lin_cst_t r(ret == number_t(0));
-          result += r;
-          m_inv = m_inv&result;
-          crab::outs() << "Crashed\n";
-          m_inv = abs_dom_t::bottom();
-        }
-        
+        crab::outs() << "Law of excluded middle violated\n";
       }
 
       AbsD pre_inv(m_inv);
