@@ -949,7 +949,7 @@ public:
           tokens.push_back(lin_cst);
         }
       
-        std::vector<std::pair<int, int>> input_box_int(14, std::make_pair(-100, -100)); // (-100,-100) is random choice
+        std::vector<std::pair<int, int>> input_box_int(14, std::make_pair(-999, -999)); // -999 is uninitialized
 
         for(auto it: tokens){
           if((it.size()!=3) && (it[0]!= "true") && (it[0]!= "false")){
@@ -1016,41 +1016,41 @@ public:
         for(int i=0;i<14;i++){
           //position
           if(i == 0 || i ==1){
-            if(input_box_int[i].first == -100){
+            if(input_box_int[i].first == -999){
               crab::outs() << "Sanitized input " << i << " lower bound " << input_box_int[i].first << " to " << "0\n"; 
               input_box_int[i].first = 0;
             }
-            if(input_box_int[i].second == -100){
+            if(input_box_int[i].second == -999){
               crab::outs() << "Sanitized input " << i << " upper bound " << input_box_int[i].second << " to " << "24\n";
               input_box_int[i].second = 24;
             }
           }
           else if(i == 2 || i ==3){
-            if(input_box_int[i].first == -100){
+            if(input_box_int[i].first == -999){
               crab::outs() << "Sanitized input " << i << " lower bound " << input_box_int[i].first << " to -5\n";
               input_box_int[i].first = -5;
             }
-            if(input_box_int[i].second == -100){
+            if(input_box_int[i].second == -999){
               crab::outs() << "Sanitized input " << i << " upper bound " << input_box_int[i].second << " to 5\n";
               input_box_int[i].second = 5;
             }
           }
           else if(i>3 && i<12){
-            if(input_box_int[i].first == -100){
+            if(input_box_int[i].first == -999){
               crab::outs() << "Sanitized input " << i << " lower bound " << input_box_int[i].first << " to 0\n";
               input_box_int[i].first = 0;
             }
-            if(input_box_int[i].second == -100){
+            if(input_box_int[i].second == -999){
               crab::outs() << "Sanitized input " << i << " upper bound " << input_box_int[i].second << " to 50\n";
               input_box_int[i].second = 50;
             }
           }
           else if(i == 12 || i == 13){
-            if(input_box_int[i].first == -100){
+            if(input_box_int[i].first == -999){
               crab::outs() << "Sanitized input " << i << " lower bound " << input_box_int[i].first << " to 0\n";
               input_box_int[i].first = 0;
             }
-            if(input_box_int[i].second == -100){
+            if(input_box_int[i].second == -999){
               crab::outs() << "Sanitized input " << i << " upper bound " << input_box_int[i].second << " to 50\n";
               input_box_int[i].second = 50;
             }
@@ -1314,7 +1314,7 @@ public:
           tokens.push_back(lin_cst);
         }
       
-        std::vector<std::pair<int, int>> input_box_int(14, std::make_pair(-100, -100)); // (-100,-100) is random choice
+        std::vector<std::pair<int, int>> input_box_int(14, std::make_pair(-999, -999)); // -999 is uninitiazlied
 
         for(auto it: tokens){
           if((it.size()!=3) && (it[0]!= "true") && (it[0]!= "false")){
@@ -1381,41 +1381,41 @@ public:
         for(int i=0;i<14;i++){
           //position
           if(i == 0 || i ==1){
-            if(input_box_int[i].first == -100){
+            if(input_box_int[i].first == -999){
               crab::outs() << "Sanitized input " << i << " lower bound " << input_box_int[i].first << " to " << "0\n"; 
               input_box_int[i].first = 0;
             }
-            if(input_box_int[i].second == -100){
+            if(input_box_int[i].second == -999){
               crab::outs() << "Sanitized input " << i << " upper bound " << input_box_int[i].second << " to " << "24\n";
               input_box_int[i].second = 24;
             }
           }
           else if(i == 2 || i ==3){
-            if(input_box_int[i].first == -100){
+            if(input_box_int[i].first == -999){
               crab::outs() << "Sanitized input " << i << " lower bound " << input_box_int[i].first << " to -5\n";
               input_box_int[i].first = -5;
             }
-            if(input_box_int[i].second == -100){
+            if(input_box_int[i].second == -999){
               crab::outs() << "Sanitized input " << i << " upper bound " << input_box_int[i].second << " to 5\n";
               input_box_int[i].second = 5;
             }
           }
           else if(i>3 && i<12){
-            if(input_box_int[i].first == -100){
+            if(input_box_int[i].first == -999){
               crab::outs() << "Sanitized input " << i << " lower bound " << input_box_int[i].first << " to 0\n";
               input_box_int[i].first = 0;
             }
-            if(input_box_int[i].second == -100){
+            if(input_box_int[i].second == -999){
               crab::outs() << "Sanitized input " << i << " upper bound " << input_box_int[i].second << " to 50\n";
               input_box_int[i].second = 50;
             }
           }
           else if(i == 12 || i == 13){
-            if(input_box_int[i].first == -100){
+            if(input_box_int[i].first == -999){
               crab::outs() << "Sanitized input " << i << " lower bound " << input_box_int[i].first << " to 0\n";
               input_box_int[i].first = 0;
             }
-            if(input_box_int[i].second == -100){
+            if(input_box_int[i].second == -999){
               crab::outs() << "Sanitized input " << i << " upper bound " << input_box_int[i].second << " to 50\n";
               input_box_int[i].second = 50;
             }
@@ -1986,7 +1986,7 @@ public:
           tokens.push_back(lin_cst);
         }
 
-        std::vector<std::pair<int, int>> input_bounds(6, std::make_pair(-100,-100));
+        std::vector<std::pair<int, int>> input_bounds(6, std::make_pair(-999,-999)); // -999 is uninitialized
         for(auto it: tokens){
           if((it.size()!=3) && (it[0]!= "true") && (it[0]!= "false")){
             crab::outs() << "Malformed lin_cst token. Exitting" << "\n";
@@ -2059,26 +2059,26 @@ public:
         //Sanitize input_bounds if uninitialized
         for(int i=0;i<6;i++){
           if(i==0||i==1){
-            if(input_bounds[i].first == -100){
+            if(input_bounds[i].first == -999){
               input_bounds[i].first = 0;
             }
-            if(input_bounds[i].second == -100){
+            if(input_bounds[i].second == -999){
               input_bounds[i].second = 25;
             }
           }
           else if(i==2||i==3){
-            if(input_bounds[i].first == -100){
+            if(input_bounds[i].first == -999){
               input_bounds[i].first = 0;
             }
-            if(input_bounds[i].second == -100){
+            if(input_bounds[i].second == -999){
               input_bounds[i].second = 5;
             }
           }
           else{
-            if(input_bounds[i].first == -100){
+            if(input_bounds[i].first == -999){
               input_bounds[i].first = -1;
             }
-            if(input_bounds[i].second == -100){
+            if(input_bounds[i].second == -999){
               input_bounds[i].second = 1;
             }
           }   
@@ -2560,7 +2560,7 @@ public:
           tokens.push_back(lin_cst);
         }
 
-        std::vector<std::pair<int, int>> input_bounds(6, std::make_pair(-100,-100));
+        std::vector<std::pair<int, int>> input_bounds(6, std::make_pair(-999,-999)); // -999 is uninitialized
         for(auto it: tokens){
           if((it.size()!=3) && (it[0]!= "true") && (it[0]!= "false")){
             crab::outs() << "Malformed lin_cst token. Exitting" << "\n";
@@ -2633,19 +2633,19 @@ public:
         //Sanitize input_bounds if uninitialized
         for(int i=0;i<4;i++){
           if(i==0||i==1){
-            if(input_bounds[i].first == -100){
+            if(input_bounds[i].first == -999){
               input_bounds[i].first = 0;
             }
-            if(input_bounds[i].second == -100){
+            if(input_bounds[i].second == -999){
               input_bounds[i].second = 25;
             }
           }
           else if(i==2||i==3){
-            if(input_bounds[i].first == -100)
+            if(input_bounds[i].first == -999)
             {
               input_bounds[i].first = 0;
             }
-            if(input_bounds[i].second == -100){
+            if(input_bounds[i].second == -999){
               input_bounds[i].second = 5;
             }
           }   
