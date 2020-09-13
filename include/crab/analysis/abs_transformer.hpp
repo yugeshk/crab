@@ -655,73 +655,6 @@ public:
     return disjuncts;
   }
 
-  // int compute_wall_distance_singular(int px, int py, int vx, int vy){
-
-  //   if(vx == 0 && vy == 0){
-  //     return 50;
-  //   }
-
-  //   int distance = 0;
-  //   int flag = 1;
-  //   while(flag){
-  //     px += vx;
-  //     py += vy;
-  //     if((px >= 0)&&(px <14) && (py>=0) && (py <14))
-  //     {
-	//      flag = 0;
-  //     }
-  //     else if(px == 24 || py == 24)
-  //     {
-	//      flag = 0;
-  //     }
-  //     else if(px < 0 || px > 24)
-  //     {
-	//      flag = 0;
-  //     }
-  //     else if(py < 0 || py > 24)
-  //     {
-	//      flag = 0;
-  //     }
-  //     else 
-  //     {
-	//      flag = 1;
-  //     }
-
-  //     distance++;
-  //   }
-
-  //   return distance;
-  // }
-
-  // int compute_wall_distance(int px, int py, int vx, int vy){
-    
-  //   int d1 = compute_wall_distance_singular(px, py, vx, 0);
-  //   int d2 = compute_wall_distance_singular(px, py, 0, vy);
-  //   int d3 = compute_wall_distance_singular(px, py, vx, vy);
-  //   if(vx == 0){
-  //     return d2;
-  //   }
-  //   else if(vy == 0){
-  //     return d1;
-  //   }
-  //   else{
-  //     if(d1 < d2){
-	//       if(d1 < d3){
-	//         return d1;
-	//       }
-	//       else{
-	//         return d3;
-	//       }
-  //     }
-  //     else if(d2 < d3)
-	//       return d2;
-  //     else
-	//       return d3;
-  //   }
-
-  //   return 50;
-  // }
-
   int access_velocity_traversed_position(int a, int b, int c, int d){
     int velocity_to_traversed_positions[6][6][6][6] =
     {{{{1, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}},
@@ -764,39 +697,42 @@ public:
       return velocity_to_traversed_positions[a][b][c][d];
   }
 
+const char track[30][33] = {
+{'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 's'},
+{'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 's'},
+{'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 's'},
+{'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 's'},
+{'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 's'},
+{'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 's'},
+{'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'},
+{'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'},
+{'x', '.', '.', '.', '.', '.', '.', '.', '.', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'},
+{'x', '.', '.', '.', '.', '.', '.', '.', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'},
+{'.', '.', '.', '.', '.', '.', '.', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', '.', '.', '.', '.', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'},
+{'.', '.', '.', '.', '.', '.', '.', 'x', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'},
+{'.', '.', '.', '.', '.', '.', 'x', 'x', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'},
+{'.', '.', '.', '.', '.', '.', 'x', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'},
+{'.', '.', '.', '.', '.', '.', '.', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'},
+{'.', '.', '.', '.', '.', '.', '.', '.', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'},
+{'.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'},
+{'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x', '.', '.', '.', '.', '.', '.', '.', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'},
+{'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x', '.', '.', '.', '.', '.', '.', '.', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'},
+{'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'},
+{'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'},
+{'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'},
+{'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'},
+{'x', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', 'x', 'x', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'g'},
+{'x', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', 'x', 'x', 'x', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'g'},
+{'x', 'x', 'x', '.', '.', '.', '.', '.', '.', 'x', 'x', 'x', 'x', 'x', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'g'},
+{'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'g'},
+{'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'g'},
+{'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'g'},
+{'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'g'},
+};
+
   int is_valid_position_nointrinsic(int px, int py)
   {
-    int map_pos = 0;
-    if((px >= 0)&&(px <14) && (py>=0) && (py <14))
-    {
-	   map_pos = 0;
-    }
-    else if(px == 24 || py == 24)
-    {
-	   map_pos = 0;
-    }
-    else if(px < 0)
-    {
-	   map_pos = 0;
-    }
-    else if (px > 24)
-    {
-	   map_pos = 0;
-    }
-    else if(py < 0)
-    {
-	   map_pos = 0;
-    }
-    else if (py > 24)
-    {
-	   map_pos = 0;
-    }
-    else 
-    {
-	   map_pos = 1;
-    }
-
-    return map_pos;
+    return (track[px][py]!='x' && px>=0 && px<30 && py>=0 && py<33);
   }
 
   int is_valid_velocity(int px, int py, int vx, int vy){
@@ -1015,14 +951,24 @@ public:
         //Sanitize Input Box Int
         for(int i=0;i<14;i++){
           //position
-          if(i == 0 || i ==1){
+          if(i == 0 ){
             if(input_box_int[i].first == -999){
               crab::outs() << "Sanitized input " << i << " lower bound " << input_box_int[i].first << " to " << "0\n"; 
               input_box_int[i].first = 0;
             }
             if(input_box_int[i].second == -999){
               crab::outs() << "Sanitized input " << i << " upper bound " << input_box_int[i].second << " to " << "24\n";
-              input_box_int[i].second = 24;
+              input_box_int[i].second = 29;
+            }
+          }
+          else if(i==1){
+            if(input_box_int[i].first == -999){
+              crab::outs() << "Sanitized input " << i << " lower bound " << input_box_int[i].first << " to " << "0\n"; 
+              input_box_int[i].first = 0;
+            }
+            if(input_box_int[i].second == -999){
+              crab::outs() << "Sanitized input " << i << " upper bound " << input_box_int[i].second << " to " << "24\n";
+              input_box_int[i].second = 32;
             }
           }
           else if(i == 2 || i ==3){
@@ -1042,7 +988,7 @@ public:
             }
             if(input_box_int[i].second == -999){
               crab::outs() << "Sanitized input " << i << " upper bound " << input_box_int[i].second << " to 50\n";
-              input_box_int[i].second = 50;
+              input_box_int[i].second = 47;
             }
           }
           else if(i == 12 || i == 13){
@@ -1052,7 +998,7 @@ public:
             }
             if(input_box_int[i].second == -999){
               crab::outs() << "Sanitized input " << i << " upper bound " << input_box_int[i].second << " to 50\n";
-              input_box_int[i].second = 50;
+              input_box_int[i].second = 47;
             }
           }
         }
@@ -1380,14 +1326,24 @@ public:
         //Sanitize Input Box Int
         for(int i=0;i<14;i++){
           //position
-          if(i == 0 || i ==1){
+          if(i == 0){
             if(input_box_int[i].first == -999){
               crab::outs() << "Sanitized input " << i << " lower bound " << input_box_int[i].first << " to " << "0\n"; 
               input_box_int[i].first = 0;
             }
             if(input_box_int[i].second == -999){
               crab::outs() << "Sanitized input " << i << " upper bound " << input_box_int[i].second << " to " << "24\n";
-              input_box_int[i].second = 24;
+              input_box_int[i].second = 29;
+            }
+          }
+          else if(i == 1){
+            if(input_box_int[i].first == -999){
+              crab::outs() << "Sanitized input " << i << " lower bound " << input_box_int[i].first << " to " << "0\n"; 
+              input_box_int[i].first = 0;
+            }
+            if(input_box_int[i].second == -999){
+              crab::outs() << "Sanitized input " << i << " upper bound " << input_box_int[i].second << " to " << "24\n";
+              input_box_int[i].second = 32;
             }
           }
           else if(i == 2 || i ==3){
@@ -1407,7 +1363,7 @@ public:
             }
             if(input_box_int[i].second == -999){
               crab::outs() << "Sanitized input " << i << " upper bound " << input_box_int[i].second << " to 50\n";
-              input_box_int[i].second = 50;
+              input_box_int[i].second = 47;
             }
           }
           else if(i == 12 || i == 13){
@@ -1417,7 +1373,7 @@ public:
             }
             if(input_box_int[i].second == -999){
               crab::outs() << "Sanitized input " << i << " upper bound " << input_box_int[i].second << " to 50\n";
-              input_box_int[i].second = 50;
+              input_box_int[i].second = 47;
             }
           }
         }
@@ -2058,12 +2014,20 @@ public:
 
         //Sanitize input_bounds if uninitialized
         for(int i=0;i<6;i++){
-          if(i==0||i==1){
+          if(i==0){
             if(input_bounds[i].first == -999){
               input_bounds[i].first = 0;
             }
             if(input_bounds[i].second == -999){
-              input_bounds[i].second = 25;
+              input_bounds[i].second = 29;
+            }
+          }
+          else if(i==1){
+            if(input_bounds[i].first == -999){
+              input_bounds[i].first = 0;
+            }
+            if(input_bounds[i].second == -999){
+              input_bounds[i].second = 32;
             }
           }
           else if(i==2||i==3){
@@ -2632,12 +2596,20 @@ public:
 
         //Sanitize input_bounds if uninitialized
         for(int i=0;i<4;i++){
-          if(i==0||i==1){
+          if(i==0){
             if(input_bounds[i].first == -999){
               input_bounds[i].first = 0;
             }
             if(input_bounds[i].second == -999){
-              input_bounds[i].second = 25;
+              input_bounds[i].second = 29;
+            }
+          }
+          else if(i==1){
+            if(input_bounds[i].first == -999){
+              input_bounds[i].first = 0;
+            }
+            if(input_bounds[i].second == -999){
+              input_bounds[i].second = 32;
             }
           }
           else if(i==2||i==3){
@@ -2696,34 +2668,10 @@ public:
                 new_m_inv |= m_inv&boxes;
                   }
                 }
-
               }
             }
           }
         }
-
-        // //Create linear_cst
-        // var_t pos_x = args_list[0];
-        // var_t pos_y = args_list[1];
-
-        // abs_dom_t boxes = abs_dom_t::bottom();
-        // abs_dom_t conjunction = abs_dom_t::top();
-        // lin_cst_t cst1(var_distance >= number_t(distance_lb));
-        // lin_cst_t cst2(var_distance <= number_t(distance_ub));
-        // lin_cst_t cst3(pos_x >= number_t(input_bounds[0].first));
-        // lin_cst_t cst4(pos_x <= number_t(input_bounds[0].second));
-        // lin_cst_t cst5(pos_y >= number_t(input_bounds[1].first));
-        // lin_cst_t cst6(pos_y <= number_t(input_bounds[1].second));
-        // conjunction += cst1;
-        // conjunction += cst2;
-        // conjunction += cst3;
-        // conjunction += cst4;
-        // conjunction += cst5; 
-        // conjunction += cst6;
-        // boxes |= conjunction;
-
-        // crab::outs() << "Distance invariant : " << boxes << "\n\n";
-        // new_m_inv |= m_inv&boxes;
       }
       
       m_inv = new_m_inv;
@@ -2876,10 +2824,10 @@ public:
             for(int vx = input_bounds[2].first; vx <= input_bounds[2].second; vx++){
               for(int vy = input_bounds[3].first; vy <= input_bounds[3].second; vy++){
             
-            int goal_x, goal_y, g_l1 = 50, g_x = 25, g_y = 25;
-            for(int i=0; i<10; i++){
-              goal_x = i+14;
-              goal_y = 0;
+            int goal_x, goal_y, g_l1 = 63, g_x = 30, g_y = 33;
+            for(int i=0; i<7; i++){
+              goal_x = i+23;
+              goal_y = 32;
               int x = std::abs(px - goal_x);
               int y = std::abs(py - goal_y);
               int l1 = x+y;
@@ -2966,9 +2914,9 @@ public:
 
       //Create goal state constraints
       abs_dom_t goal_check = abs_dom_t::top();
-      lin_cst_t cst1(args_list[0] >= number_t(14));
-      lin_cst_t cst2(args_list[0] <= number_t(23));
-      lin_cst_t cst3(args_list[1] == number_t(0));
+      lin_cst_t cst1(args_list[0] >= number_t(23));
+      lin_cst_t cst2(args_list[0] <= number_t(29));
+      lin_cst_t cst3(args_list[1] == number_t(32));
       lin_cst_t cst4(args_list[2] == number_t(0));
       lin_cst_t cst5(args_list[3] == number_t(0));
       goal_check += cst1;
@@ -3033,9 +2981,9 @@ public:
 
       //Create goal state constraints
       abs_dom_t goal_check = abs_dom_t::top();
-      lin_cst_t cst1(args_list[0] >= number_t(14));
-      lin_cst_t cst2(args_list[0] <= number_t(23));
-      lin_cst_t cst3(args_list[1] == number_t(0));
+      lin_cst_t cst1(args_list[0] >= number_t(23));
+      lin_cst_t cst2(args_list[0] <= number_t(29));
+      lin_cst_t cst3(args_list[1] == number_t(32));
       lin_cst_t cst4(args_list[2] == number_t(0));
       lin_cst_t cst5(args_list[3] == number_t(0));
       goal_check += cst1;
@@ -3243,12 +3191,20 @@ public:
 
         //Sanitize input_bounds if uninitialized
         for(int i=0;i<4;i++){
-          if(i==0||i==1){
+          if(i==0){
             if(input_bounds[i].first == -100){
               input_bounds[i].first = 0;
             }
             if(input_bounds[i].second == -100){
-              input_bounds[i].second = 25;
+              input_bounds[i].second = 29;
+            }
+          }
+          else if(i==1){
+            if(input_bounds[i].first == -100){
+              input_bounds[i].first = 0;
+            }
+            if(input_bounds[i].second == -100){
+              input_bounds[i].second = 32;
             }
           }
           else{
