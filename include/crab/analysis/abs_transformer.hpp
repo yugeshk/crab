@@ -2894,13 +2894,13 @@ public:
       lin_cst_t cst1(args_list[0] >= number_t(32));
       lin_cst_t cst2(args_list[0] <= number_t(34));
       lin_cst_t cst3(args_list[1] == number_t(0));
-      lin_cst_t cst4(args_list[2] == number_t(0));
-      lin_cst_t cst5(args_list[3] == number_t(0));
+      // lin_cst_t cst4(args_list[2] == number_t(0));
+      // lin_cst_t cst5(args_list[3] == number_t(0));
       goal_check += cst1;
       goal_check += cst2;
       goal_check += cst3;
-      goal_check += cst4;
-      goal_check += cst5;
+      // goal_check += cst4;
+      // goal_check += cst5;
 
       //Create null constraints
       abs_dom_t null_check = abs_dom_t::top();
@@ -2961,13 +2961,13 @@ public:
       lin_cst_t cst1(args_list[0] >= number_t(32));
       lin_cst_t cst2(args_list[0] <= number_t(34));
       lin_cst_t cst3(args_list[1] == number_t(0));
-      lin_cst_t cst4(args_list[2] == number_t(0));
-      lin_cst_t cst5(args_list[3] == number_t(0));
+      // lin_cst_t cst4(args_list[2] == number_t(0));
+      // lin_cst_t cst5(args_list[3] == number_t(0));
       goal_check += cst1;
       goal_check += cst2;
       goal_check += cst3;
-      goal_check += cst4;
-      goal_check += cst5;
+      // goal_check += cst4;
+      // goal_check += cst5;
 
       //Create null constraints
       abs_dom_t null_check = abs_dom_t::top();
