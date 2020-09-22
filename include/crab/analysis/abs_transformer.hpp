@@ -1112,6 +1112,36 @@ const char track[30][33] = {
             boxes |= conjunction;
           }
 
+          //NOISE : we also add no-op if wall and goal distances are more than 3.
+          int noise = 1;
+          for(int i=4;i<14;i++){
+            if(input_box_int[i].first >= 4 && input_box_int[i].second >= 4){
+              continue;
+            }
+            else{
+              noise = 0;
+            }
+          }
+
+          if(noise){
+            abs_dom_t conjunction = abs_dom_t::top(); 
+            lin_cst_t cst1(ax == number_t(0));
+            lin_cst_t cst2(ay == number_t(0));
+            lin_cst_t cst3(pos_x == number_t(loopv[0]));
+            lin_cst_t cst4(vel_x == number_t(loopv[2]));
+            lin_cst_t cst5(pos_y == number_t(loopv[1]));
+            lin_cst_t cst6(vel_y == number_t(loopv[3]));
+            conjunction += cst1;
+            conjunction += cst2;
+            conjunction += cst3;
+            conjunction += cst4;
+            conjunction += cst5; 
+            conjunction += cst6;
+            boxes |= conjunction;
+          }
+
+          //END Noise
+
           crab::outs() << "Acceleration disjuncts : " << boxes << "\n\n\n";
 
           auto tmp1 = new_m_inv.get_content_domain();
