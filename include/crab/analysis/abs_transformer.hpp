@@ -1118,6 +1118,11 @@ public:
             }
           }
 
+          //If velocity is 0 then we should not add noise
+          if(input_box_int[2].first == 0 && input_box_int[2].second == 0 && input_box_int[3].first == 0 && input_box_int[3].second == 0){
+            noise = 0;
+          }
+
           if(noise){
             abs_dom_t conjunction = abs_dom_t::top(); 
             lin_cst_t cst1(ax == number_t(0));
