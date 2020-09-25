@@ -1116,9 +1116,9 @@ public:
           }
 
           //NOISE : we also add no-op if wall and goal distances are more than 3.
-          int noise = 0;
+          int noise = 1;
           for(int i=4;i<14;i++){
-            if(input_box_int[i].first >= 4 && input_box_int[i].second >= 4){
+            if(input_box_int[i].first >= 2 && input_box_int[i].second >= 2){
               continue;
             }
             else{
@@ -1135,16 +1135,24 @@ public:
             abs_dom_t conjunction = abs_dom_t::top(); 
             lin_cst_t cst1(ax == number_t(0));
             lin_cst_t cst2(ay == number_t(0));
-            lin_cst_t cst3(pos_x == number_t(input_box_int[0].first));
-            lin_cst_t cst4(vel_x == number_t(input_box_int[2].first));
-            lin_cst_t cst5(pos_y == number_t(input_box_int[1].first));
-            lin_cst_t cst6(vel_y == number_t(input_box_int[3].first));
+            lin_cst_t cst3(pos_x >= number_t(input_box_int[0].first));
+            lin_cst_t cst4(pos_x <= number_t(input_box_int[0].second));
+            lin_cst_t cst5(vel_x >= number_t(input_box_int[2].first));
+            lin_cst_t cst6(vel_x <= number_t(input_box_int[2].second));
+            lin_cst_t cst7(pos_y >= number_t(input_box_int[1].first));
+            lin_cst_t cst8(pos_y <= number_t(input_box_int[1].second));
+            lin_cst_t cst9(vel_y >= number_t(input_box_int[3].first));
+            lin_cst_t cst10(vel_y >= number_t(input_box_int[3].second));
             conjunction += cst1;
             conjunction += cst2;
             conjunction += cst3;
             conjunction += cst4;
             conjunction += cst5; 
             conjunction += cst6;
+            conjunction += cst7;
+            conjunction += cst8;
+            conjunction += cst9;
+            conjunction += cst10;
             boxes |= conjunction;
           }
 
