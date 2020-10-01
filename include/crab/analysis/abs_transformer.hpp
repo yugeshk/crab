@@ -1068,8 +1068,8 @@ public:
 
           int arr[28];                                                             
           for(int i=0;i<14;i++){                                                   
-            arr[2*i] = loopv[i];                                   
-            arr[2*i+1] = loopv[i];                                
+            arr[2*i] = input_box_int[i].first;                                   
+            arr[2*i+1] = input_box_int[i].second;                                
           }                                                                        
 
           //Write the input to the pipe and close writing end                      
@@ -1436,20 +1436,20 @@ public:
 
         //Do this for each concretized state from input_box_int (has 14 feature values)
         int loopv[14];
-        CON(0){
-        CON(1){
-        CON(2){
-        CON(3){
-        CON(4){
-        CON(5){
-        CON(6){
-        CON(7){
-        CON(8){
-        CON(9){
-        CON(10){
-        CON(11){
-        CON(12){
-        CON(13){
+        // CON(0){
+        // CON(1){
+        // CON(2){
+        // CON(3){
+        // CON(4){
+        // CON(5){
+        // CON(6){
+        // CON(7){
+        // CON(8){
+        // CON(9){
+        // CON(10){
+        // CON(11){
+        // CON(12){
+        // CON(13){
 
         
 
@@ -1479,8 +1479,8 @@ public:
 
           int arr[28];                                                             
           for(int i=0;i<14;i++){                                                   
-            arr[2*i] = loopv[i];                                   
-            arr[2*i+1] = loopv[i];                                
+            arr[2*i] = input_box_int[i].first;                                   
+            arr[2*i+1] = input_box_int[i].second;                                
           }                                                                        
 
           //Write the input to the pipe and close writing end                      
@@ -1530,16 +1530,24 @@ public:
             abs_dom_t conjunction = abs_dom_t::top(); 
             lin_cst_t cst1(ax == number_t(p.first));
             lin_cst_t cst2(ay == number_t(p.second));
-            lin_cst_t cst3(pos_x == number_t(loopv[0]));
-            lin_cst_t cst4(vel_x == number_t(loopv[2]));
-            lin_cst_t cst5(pos_y == number_t(loopv[1]));
-            lin_cst_t cst6(vel_y == number_t(loopv[3]));
+            lin_cst_t cst3(pos_x >= number_t(input_box_int[0].first));
+            lin_cst_t cst4(vel_x >= number_t(input_box_int[2].first));
+            lin_cst_t cst5(pos_y >= number_t(input_box_int[1].first));
+            lin_cst_t cst6(vel_y >= number_t(input_box_int[3].first));
+            lin_cst_t cst7(pos_x <= number_t(input_box_int[0].second));
+            lin_cst_t cst8(vel_x <= number_t(input_box_int[2].second));
+            lin_cst_t cst9(pos_y <= number_t(input_box_int[1].second));
+            lin_cst_t cst10(vel_y <= number_t(input_box_int[3].second));
             conjunction += cst1;
             conjunction += cst2;
             conjunction += cst3;
             conjunction += cst4;
             conjunction += cst5; 
             conjunction += cst6;
+            conjunction += cst7;
+            conjunction += cst8;
+            conjunction += cst9;
+            conjunction += cst10;
             boxes |= conjunction;
           }
 
@@ -1589,20 +1597,20 @@ public:
         crab::outs() << "EXITTING INTRINSIC\n\n";
 
         }
-        }
-        }
-        }
-        }
-        }
-        }
-        }
-        }
-        }
-        }
-        }
-        }
-        }
-        }
+        // }
+        // }
+        // }
+        // }
+        // }
+        // }
+        // }
+        // }
+        // }
+        // }
+        // }
+        // }
+        // }
+        // }
 
       m_inv = new_m_inv;
       auto tmp1 = m_inv.get_content_domain();
